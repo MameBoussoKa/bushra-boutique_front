@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { CartProvider } from './context/CartContext';
 import { AuthProvider } from './context/AuthContext';
@@ -32,27 +32,6 @@ function PublicLayout({ children }) {
 }
 
 export default function App() {
-  useEffect(() => {
-    const handleClick = (e) => {
-      const anchor = e.target.closest('a');
-      if (!anchor) return;
-      if (anchor.target === '_blank') return;
-      const href = anchor.getAttribute('href');
-      if (!href || href.startsWith('#') || href.startsWith('mailto:') || href.startsWith('tel:')) return;
-      try {
-        const url = new URL(href, window.location.origin);
-        if (url.origin !== window.location.origin) return;
-      } catch {
-        return;
-      }
-      e.preventDefault();
-      window.location.href = href;
-    };
-
-    document.addEventListener('click', handleClick, true);
-    return () => document.removeEventListener('click', handleClick, true);
-  }, []);
-
   return (
     <BrowserRouter>
       <AuthProvider>
