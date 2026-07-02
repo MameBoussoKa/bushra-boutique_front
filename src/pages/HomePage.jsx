@@ -50,7 +50,7 @@ export default function HomePage() {
   const heroSlides = [
     {
       tag: 'Bushra Machallah',
-      title: "L'Art de\nl'Encens",
+      title: "L'Art de\nl'Encensoirs",
       subtitle: "Des senteurs authentiques façonnées avec passion au cœur du Sénégal. Chaque volute de fumée, une invitation au voyage intérieur.",
       cta: 'Découvrir la collection',
       ctaTo: '/produits',
@@ -234,10 +234,10 @@ export default function HomePage() {
             )) : (
               /* Fallback static categories with real product images */
               [
-                { name: 'Encensoirs', desc: 'Mabkhara artisanaux & supports décoratifs', img: '/encensoir1.png' },
-                { name: 'Thiouraye', desc: 'Gowé, Bakhour & encens 100% naturels Bushra', img: '/gowe-thiouray.png' },
+                { name: 'Encensoirs', desc: 'tagines avec supports ', img: '/encensoir1.png' },
+                { name: 'Thiouraye', desc: 'Gowé, velours & encensoirs 100% naturels Bushra', img: '/gowe-thiouray.png' },
                 { name: 'Parfums & Sprays', desc: 'Nuage Secret, Fleur de Lune, Brume de Coton', img: '/sprays.png' },
-                { name: 'Vétiver & Naturels', desc: 'Paniers vétiver & senteurs de la nature', img: '/paniers-vetiver.png' },
+                { name: 'paniers thiep & Naturels', desc: 'Paniers thiep & senteurs de la nature', img: '/paniers-vetiver.png' },
               ].map((cat, i) => (
                 <Link key={i} to="/produits" className={`cat-card cat-card--${i}`}>
                   <div className="cat-card__inner">
@@ -294,14 +294,14 @@ export default function HomePage() {
             /* Vitrine statique avec les vraies images pendant que le backend charge */
             <div className="products-grid">
               {[
-                { id: 's1', name: 'Mabkhara Prestige Orange', category_name: 'Encensoirs', price: 28000, image_url: '/encensoir1.png' },
-                { id: 's2', name: 'Mabkhara Dorée Étoile', category_name: 'Encensoirs', price: 22000, compare_price: 27000, image_url: '/encensoir2.png' },
-                { id: 's3', name: 'Mabkhara Noir & Or', category_name: 'Encensoirs', price: 19500, image_url: '/encensoir3.png' },
-                { id: 's4', name: 'Mabkhara Coupe Ivoire', category_name: 'Encensoirs', price: 24000, image_url: '/encensoir4.png' },
-                { id: 's5', name: 'Mabkhara Bois Précieux', category_name: 'Encensoirs', price: 35000, compare_price: 42000, is_featured: true, image_url: '/encensoir5.png' },
-                { id: 's6', name: 'Mabkhara Terre Cuite', category_name: 'Encensoirs', price: 17000, image_url: '/encensoir6.png' },
-                { id: 's7', name: 'Gowé Bushra & Bushra Velours', category_name: 'Thiouraye', price: 12500, image_url: '/gowe-thiouray.png' },
-                { id: 's8', name: 'Paniers Vétiver Naturel', category_name: 'Accessoires', price: 8000, image_url: '/paniers-vetiver.png' },
+                { id: 's1', name: 'Models bushra ', category_name: 'Encensoirs', price: 25000, image_url: '/encensoir1.png' },
+                { id: 's2', name: 'Models tagine', category_name: 'Encensoirs', price: 20000, compare_price: 25000, image_url: '/encensoir2.png' },
+                { id: 's3', name: 'Models kenza', category_name: 'Encensoirs', price: 20000, image_url: '/encensoir3.png' },
+                { id: 's4', name: 'Models rokhaya', category_name: 'Encensoirs', price: 25000, image_url: '/encensoir4.png' },
+                { id: 's5', name: 'Models dieg bi', category_name: 'Encensoirs', price: 30000, compare_price: 42000, is_featured: true, image_url: '/encensoir5.png' },
+                { id: 's6', name: 'Models Olivia', category_name: 'Encensoirs', price: 30000, image_url: '/encensoir6.png' },
+                { id: 's7', name: 'Gowé Bushra & Bushra Velours', category_name: 'Thiouraye', price: 7500, image_url: '/gowe-thiouray.png' },
+                { id: 's8', name: 'Paniers thiep', category_name: 'Accessoires', price: 8000, image_url: '/paniers-vetiver.png' },
               ].map(p => <ProductCard key={p.id} product={p} />)}
             </div>
           )}
@@ -334,7 +334,7 @@ export default function HomePage() {
             <div className="divider divider--left" />
             <p className="body-lg" style={{ color: 'var(--color-ash)', marginBottom: '1.5rem' }}>
               Bushra Machallah est née d'une passion pour les senteurs ancestrales du Sénégal. 
-              Nous sélectionnons avec soin des encens, bakhours et huiles parfumées auprès 
+              Nous sélectionnons avec soin des encensoirs, thiouray et huiles parfumées auprès 
               d'artisans locaux, pour vous offrir une expérience olfactive authentique et raffinée.
             </p>
             <p className="body" style={{ color: 'var(--color-smoke)', marginBottom: '2rem' }}>
@@ -374,7 +374,7 @@ export default function HomePage() {
               { icon: <Search size={28} strokeWidth={1.5} />, title: 'Choisissez', desc: 'Parcourez notre catalogue et sélectionnez vos senteurs préférées.' },
               { icon: <ShoppingCart size={28} strokeWidth={1.5} />, title: 'Commandez', desc: 'Ajoutez vos articles au panier et passez votre commande en quelques clics.' },
               { icon: <Package size={28} strokeWidth={1.5} />, title: 'Livraison', desc: 'Nous préparons votre commande avec soin et vous la livrons à domicile.' },
-              { icon: <Sparkles size={28} strokeWidth={1.5} />, title: 'Savourez', desc: 'Profitez de vos encens et senteurs dans votre foyer. Bakhour ma bakhour !' },
+              { icon: <Sparkles size={28} strokeWidth={1.5} />, title: 'Savourez', desc: 'Profitez de vos encensoirs et senteurs dans votre foyer. ' },
             ].map((step, i) => (
               <div key={i} className="process__step">
                 <div className="process__step-num">{String(i + 1).padStart(2, '0')}</div>
@@ -401,7 +401,7 @@ export default function HomePage() {
 
           <div className="testimonials__grid">
             {[
-              { name: 'Fatou Diallo', city: 'Dakar', text: "Les encens sont d'une qualité exceptionnelle. L'odeur envahit toute la maison et rappelle les meilleurs marchés de Dakar. Je recommande vivement !", stars: 5 },
+              { name: 'Fatou Diallo', city: 'Dakar', text: "Les encensoirs sont d'une qualité exceptionnelle. L'odeur envahit toute la maison et rappelle les meilleurs marchés de Dakar. Je recommande vivement !", stars: 5 },
               { name: 'Aminata Sow', city: 'Saint-Louis', text: "L'encensoir que j'ai commandé est une véritable œuvre d'art. La livraison était rapide et l'emballage soigné. Parfait pour offrir.", stars: 5 },
               { name: 'Moussa Ndiaye', city: 'Thiès', text: "Je commande régulièrement ici. Les huiles parfumées sont authentiques et le service client est excellent. Une boutique à recommander !", stars: 5 },
             ].map((t, i) => (

@@ -16,7 +16,7 @@ export default function CartPage() {
       </div>
       <h2 className="display-md">Votre panier est vide</h2>
       <p style={{ color: 'var(--color-smoke)', marginTop: '0.75rem' }}>
-        Découvrez nos encens, encensoirs et senteurs d'exception.
+        Découvrez nos  encensoirs et senteurs d'exception.
       </p>
       <Link to="/produits" className="btn btn--primary" style={{ marginTop: '2rem' }}>
         Explorer la boutique →
