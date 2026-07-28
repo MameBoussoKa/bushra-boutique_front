@@ -104,39 +104,29 @@ export default function Navbar() {
             <Link to="/commande/suivi" className="navbar__cta">
               Suivre ma commande
             </Link>
-
-            {/* Mobile hamburger - caché sur mobile avec bottom nav */}
-            <button
-              className={`navbar__hamburger ${menuOpen ? 'navbar__hamburger--open' : ''}`}
-              onClick={() => setMenuOpen(s => !s)}
-              aria-label="Menu"
-              aria-expanded={menuOpen}
-            >
-              <span /><span /><span />
-            </button>
           </div>
         </div>
 
-        {/* Search bar */}
-        <div className={`navbar__search ${searchOpen ? 'navbar__search--open' : ''}`}>
-          <form onSubmit={handleSearch} className="navbar__search-form">
-            <input
-              ref={searchRef}
-              type="text"
-              placeholder="Rechercher encens, senteurs, encensoirs…"
-              value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
-              className="navbar__search-input"
-            />
-            <button type="submit" className="navbar__search-submit">
-              Rechercher
-            </button>
-            <button type="button" onClick={() => setSearchOpen(false)} className="navbar__search-close">
-              <X size={18} strokeWidth={2} />
-            </button>
-          </form>
-        </div>
-      </nav>
+         {/* Search bar */}
+         <div className={`navbar__search ${searchOpen ? 'navbar__search--open' : ''}`}>
+           <form onSubmit={handleSearch} className="navbar__search-form">
+             <input
+               ref={searchRef}
+               type="text"
+               placeholder="Rechercher encens, senteurs, encensoirs…"
+               value={searchQuery}
+               onChange={e => setSearchQuery(e.target.value)}
+               className="navbar__search-input"
+             />
+             <button type="submit" className="navbar__search-submit">
+               Rechercher
+             </button>
+             <button type="button" onClick={() => setSearchOpen(false)} className="navbar__search-close">
+               <X size={18} strokeWidth={2} />
+             </button>
+           </form>
+         </div>
+       </nav>
 
       {/* Mobile menu */}
       <div className={`mobile-menu ${menuOpen ? 'mobile-menu--open' : ''}`}>

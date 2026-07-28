@@ -498,3 +498,5 @@ function getCategoryIcon(name) {
   if (n.includes('coffret') || n.includes('cadeau')) return <Gift size={28} strokeWidth={1.5} />;
   return <Sparkles size={28} strokeWidth={1.5} />;
 }
+
+

@@ -61,9 +61,32 @@ export const api = {
       const query = new URLSearchParams(params).toString();
       return request(`/admin/products${query ? `?${query}` : ''}`);
     },
-    createProduct: (data) => request('/admin/products', { method: 'POST', body: JSON.stringify(data) }),
-    updateProduct: (id, data) => request(`/admin/products/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+    createProduct: (data, image) => {
+      if (image) {
+        const fd = new FormData();
+        Object.entries(data).forEach(([k, v]) => {
+          if (k === 'image') return;
+          if (v !== null && v !== undefined && v !== '') fd.append(k, v);
+        });
+        fd.append('image', image);
+        return request('/admin/products', { method: 'POST', body: fd });
+      }
+      return request('/admin/products', { method: 'POST', body: JSON.stringify(data) });
+    },
+    updateProduct: (id, data, image) => {
+      if (image) {
+        const fd = new FormData();
+        Object.entries(data).forEach(([k, v]) => {
+          if (k === 'image') return;
+          if (v !== null && v !== undefined && v !== '') fd.append(k, v);
+        });
+        fd.append('image', image);
+        return request(`/admin/products/${id}`, { method: 'PUT', body: fd });
+      }
+      return request(`/admin/products/${id}`, { method: 'PUT', body: JSON.stringify(data) });
+    },
     deleteProduct: (id) => request(`/admin/products/${id}`, { method: 'DELETE' }),
+    forceDeleteProduct: (id) => request(`/admin/products/${id}/force`, { method: 'DELETE' }),
     uploadImage: (id, formData) =>
       request(`/admin/products/${id}/images`, {
         method: 'POST',
@@ -92,12 +115,20 @@ export const api = {
     markAllRead: () => request('/admin/notifications/read-all', { method: 'PATCH' }),
     getLowStock: () => request('/admin/stock/low'),
     getCustomers: () => request('/admin/customers'),
+    getProductVariants: (productId, all = false) => request(`/admin/products/${productId}/variants${all ? '?all=true' : ''}`),
+    getVariant: (id) => request(`/admin/variants/${id}`),
+    createVariant: (productId, data) => request(`/admin/products/${productId}/variants`, { method: 'POST', body: JSON.stringify(data) }),
+    updateVariant: (id, data) => request(`/admin/variants/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+    deleteVariant: (id) => request(`/admin/variants/${id}`, { method: 'DELETE' }),
+    toggleVariant: (id, isActive) => request(`/admin/variants/${id}/toggle`, { method: 'PATCH', body: JSON.stringify({ isActive }) }),
+    adjustVariantStock: (id, change, reason, note) =>
+      request(`/admin/variants/${id}/stock`, { method: 'PATCH', body: JSON.stringify({ change, reason, note }) }),
   },
 };
 
 export function getImageUrl(path) {
   if (!path) return '/placeholder.jpg';
-  if (path.startsWith('http')) return path;
+  if (path.startsWith('http') || path.startsWith('blob:')) return path;
   if (path.startsWith('/uploads/')) return path;
   return `/uploads/${path}`;
 }
