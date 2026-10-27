@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useReducer, useEffect } from 'react';
+import React, { createContext, useContext, useReducer, useEffect, useState } from 'react';
 
 const CartContext = createContext(null);
 
@@ -46,7 +46,10 @@ function cartReducer(state, action) {
 const STORAGE_KEY = 'bushra_cart';
 
 export function CartProvider({ children }) {
-  const [state, dispatch] = useReducer(cartReducer, { items: [] }, (initial) => {
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [lastAddedItem, setLastAddedItem] = useState(null);
+
+  const [state, baseDispatch] = useReducer(cartReducer, { items: [] }, (initial) => {
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
       return stored ? JSON.parse(stored) : initial;
@@ -59,11 +62,33 @@ export function CartProvider({ children }) {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   }, [state]);
 
+  const dispatch = (action) => {
+    baseDispatch(action);
+    if (action.type === 'ADD_ITEM') {
+      setLastAddedItem(action.item);
+      setIsDrawerOpen(true);
+    }
+  };
+
+  const openDrawer = () => setIsDrawerOpen(true);
+  const closeDrawer = () => setIsDrawerOpen(false);
+  const toggleDrawer = () => setIsDrawerOpen(prev => !prev);
+
   const total = state.items.reduce((sum, i) => sum + i.price * i.quantity, 0);
   const count = state.items.reduce((sum, i) => sum + i.quantity, 0);
 
   return (
-    <CartContext.Provider value={{ ...state, total, count, dispatch }}>
+    <CartContext.Provider value={{
+      ...state,
+      total,
+      count,
+      dispatch,
+      isDrawerOpen,
+      openDrawer,
+      closeDrawer,
+      toggleDrawer,
+      lastAddedItem
+    }}>
       {children}
     </CartContext.Provider>
   );

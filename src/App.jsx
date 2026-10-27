@@ -20,12 +20,15 @@ import AccountPage from './pages/AccountPage';
 import { AdminLayout, AdminLoginPage } from './pages/AdminPage';
 import { Flame } from 'lucide-react';
 
-/* ── Public layout (with navbar + footer) ───────────────────── */
+import CartDrawer from './components/CartDrawer';
+
+/* ── Public layout (with navbar + cart drawer + footer) ─────── */
 function PublicLayout({ children }) {
   return (
     <>
       <Navbar />
       {children}
+      <CartDrawer />
       <Footer />
     </>
   );

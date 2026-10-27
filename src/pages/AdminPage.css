@@ -259,6 +259,7 @@
 .admin-page {
   padding: 2rem 2.5rem;
   max-width: none;
+  min-height: 100vh;
 }
 
 .admin-page__header {
