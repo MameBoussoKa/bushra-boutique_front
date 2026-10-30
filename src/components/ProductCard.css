@@ -184,6 +184,26 @@
   opacity: 1 !important;
 }
 
+/* Fiche de démonstration (catalogue de secours) — non commandable */
+.product-card__badge--demo {
+  background: rgba(143, 130, 116, 0.92);
+  color: var(--color-ivory);
+  border-color: rgba(143, 130, 116, 0.92);
+}
+
+.product-card__quick-btn:disabled,
+.product-card__quick-btn:disabled:hover,
+.home-page .product-card--home .product-card__quick-btn:disabled,
+.home-page .product-card--home .product-card__quick-btn:disabled:hover {
+  cursor: not-allowed;
+  background: rgba(14, 12, 10, 0.72);
+  border: 1px dashed rgba(200, 162, 97, 0.35);
+  color: var(--color-ash);
+  box-shadow: none;
+  transform: translateY(0);
+  opacity: 1;
+}
+
 /* Details area */
 .product-card__details {
   padding: 1.15rem 1.15rem 1.25rem;

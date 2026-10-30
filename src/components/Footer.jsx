@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { MessageCircle, Phone, MapPin, Mail, CreditCard, Smartphone, ShieldCheck, Truck, Sparkles } from 'lucide-react';
+import { MessageCircle, Phone, MapPin, Mail, ShieldCheck, Truck, Sparkles } from 'lucide-react';
+import { SHOP, whatsappLink } from '../utils/shop';
 import './Footer.css';
 import TransparentLogo from './TransparentLogo';
 
@@ -81,7 +82,7 @@ export default function Footer() {
             </p>
             <div className="footer__socials">
               <a
-                href="https://wa.me/221771234567"
+                href={whatsappLink()}
                 target="_blank"
                 rel="noreferrer"
                 aria-label="WhatsApp"
@@ -90,7 +91,7 @@ export default function Footer() {
                 <MessageCircle size={18} />
               </a>
               <a
-                href="https://instagram.com"
+                href={SHOP.instagram}
                 target="_blank"
                 rel="noreferrer"
                 aria-label="Instagram"
@@ -99,7 +100,7 @@ export default function Footer() {
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="20" x="2" y="2" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" x2="17.51" y1="6.5" y2="6.5"/></svg>
               </a>
               <a
-                href="https://tiktok.com"
+                href={SHOP.tiktok}
                 target="_blank"
                 rel="noreferrer"
                 aria-label="TikTok"
@@ -150,19 +151,21 @@ export default function Footer() {
             <ul className="footer__contact-list">
               <li>
                 <Phone size={16} className="footer__contact-icon" />
-                <a href="tel:+221771234567">+221 77 123 45 67</a>
+                <a href={`tel:${SHOP.phone}`}>{SHOP.phoneDisplay}</a>
               </li>
               <li>
                 <MessageCircle size={16} className="footer__contact-icon" />
-                <a href="https://wa.me/221771234567" target="_blank" rel="noreferrer">WhatsApp : +221 77 123 45 67</a>
+                <a href={whatsappLink()} target="_blank" rel="noreferrer">
+                  WhatsApp : {SHOP.phoneDisplay}
+                </a>
               </li>
               <li>
                 <Mail size={16} className="footer__contact-icon" />
-                <a href="mailto:contact@bushramachallah.sn">contact@bushramachallah.sn</a>
+                <a href={`mailto:${SHOP.email}`}>{SHOP.email}</a>
               </li>
               <li>
                 <MapPin size={16} className="footer__contact-icon" />
-                <span>Dakar, Sénégal</span>
+                <span>{SHOP.city}</span>
               </li>
             </ul>
             <div className="footer__track-box">

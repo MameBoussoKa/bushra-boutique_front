@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { api, getImageUrl, formatPrice } from '../utils/api';
+import { FALLBACK_IMAGE, isDemoId, whatsappLink } from '../utils/shop';
 import { useCart } from '../context/CartContext';
 import { 
   Check, ShoppingBag, MessageCircle, Star, Truck, ShieldCheck, 
@@ -90,11 +91,15 @@ export default function ProductDetailPage() {
     : (product?.base_price || product?.price || 0);
 
   const mainImage = product?.images?.[activeImage]?.url || product?.primary_image || product?.image_url;
-  const isLocalImage = mainImage && mainImage.startsWith('/');
-  const activeImgSrc = isLocalImage ? mainImage : (mainImage ? getImageUrl(mainImage) : '/encensoir1.png');
+  const activeImgSrc = getImageUrl(mainImage || FALLBACK_IMAGE);
+  const isDemo = isDemoId(product?.id);
+
+  const whatsappOrderLink = whatsappLink(
+    `Bonjour, je souhaite commander ${product?.name} (${formatPrice(currentPrice)}) en quantité ${qty}.`
+  );
 
   const handleAddToCart = () => {
-    if (!product) return;
+    if (!product || isDemo) return;
     dispatch({
       type: 'ADD_ITEM',
       item: {
@@ -112,6 +117,7 @@ export default function ProductDetailPage() {
   };
 
   const handleBuyNow = () => {
+    if (isDemo) return;
     handleAddToCart();
     navigate('/commande');
   };
@@ -307,10 +313,12 @@ export default function ProductDetailPage() {
 
             <button
               onClick={handleAddToCart}
-              disabled={!inStock}
+              disabled={!inStock || isDemo}
               className={`btn btn--primary product-summary__cart-btn ${added ? 'btn--added' : ''}`}
             >
-              {added ? (
+              {isDemo ? (
+                <span>Fiche démo — non commandable</span>
+              ) : added ? (
                 <>
                   <Check size={18} strokeWidth={2.5} />
                   <span>Ajouté au panier !</span>
@@ -324,15 +332,22 @@ export default function ProductDetailPage() {
             </button>
           </div>
 
+          {isDemo && (
+            <p className="product-summary__demo-note">
+              Cette fiche appartient au catalogue de présentation : elle n'est pas encore
+              disponible à la commande. Écrivez-nous sur WhatsApp pour vérifier le stock réel.
+            </p>
+          )}
+
           {/* Direct Buy & WhatsApp Buttons */}
           <div className="product-summary__secondary-actions">
-            <button onClick={handleBuyNow} className="btn btn--outline btn--full">
+            <button onClick={handleBuyNow} className="btn btn--outline btn--full" disabled={isDemo}>
               <span>Acheter maintenant</span>
               <ArrowRight size={16} />
             </button>
 
             <a
-              href={`https://wa.me/221771234567?text=Bonjour%20Bushra%20Machallah%2C%20je%20souhaite%20commander%20imm%C3%A9diatement%20le%20produit%20%3A%20${encodeURIComponent(product.name)}%20(${formatPrice(currentPrice)})%20en%20quantit%C3%A9%20${qty}.`}
+              href={whatsappOrderLink}
               target="_blank"
               rel="noreferrer"
               className="btn btn--whatsapp btn--full"

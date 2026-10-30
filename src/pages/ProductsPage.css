@@ -296,6 +296,19 @@
   line-height: 1.6;
 }
 
+/* Pagination progressive */
+.products-load-more {
+  display: flex;
+  justify-content: center;
+  margin-top: 2.5rem;
+}
+
+.products-load-more .btn:disabled {
+  opacity: 0.6;
+  cursor: progress;
+  transform: none;
+}
+
 @media (max-width: 768px) {
   .products-page__hero {
     padding: 6.5rem 0 2.5rem;

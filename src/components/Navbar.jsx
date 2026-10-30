@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
-import { Search, ShoppingBag, X, Menu, User, Sparkles, Home, Grid, Phone, ChevronRight } from 'lucide-react';
+import { whatsappLink } from '../utils/shop';
+import { Search, ShoppingBag, X, Menu, User, Home, Grid, Phone, ChevronRight } from 'lucide-react';
 import './Navbar.css';
 import TransparentLogo from './TransparentLogo';
 
@@ -83,11 +84,9 @@ export default function Navbar() {
       <header className={`navbar ${isHome ? 'navbar--home' : ''} ${isNavbarTransparent ? 'navbar--transparent' : 'navbar--scrolled'} ${mobileMenuOpen ? 'navbar--menu-open' : ''}`}>
         {isHome && (
           <div className="navbar__announcement" aria-label="Informations de livraison">
-            <button type="button" className="navbar__announcement-arrow" aria-label="Précédent">&lt;</button>
             <span className="navbar__announcement-text">
-              Livraison offerte dès 25 000 FCFA | Retours 30 jours | Paiement à la livraison Wave & Orange Money
+              Livraison offerte dès 25 000 FCFA à Dakar | Paiement à la livraison, Wave & Orange Money
             </span>
-            <button type="button" className="navbar__announcement-arrow" aria-label="Suivant">&gt;</button>
           </div>
         )}
         <div className="container navbar__inner">
@@ -164,7 +163,7 @@ export default function Navbar() {
               aria-label={`Panier (${count} articles)`}
             >
               <ShoppingBag size={18} strokeWidth={1.8} />
-              <span className="navbar__cart-label">Cart</span>
+              <span className="navbar__cart-label">Panier</span>
               <span className={`navbar__cart-badge ${badgeAnimated ? 'navbar__cart-badge--pop' : ''}`}>
                 {count}
               </span>
@@ -277,7 +276,7 @@ export default function Navbar() {
                 Suivre ma commande
               </Link>
               <a
-                href="https://wa.me/221771234567"
+                href={whatsappLink('Bonjour, j’ai une question sur un produit.')}
                 target="_blank"
                 rel="noreferrer"
                 className="btn btn--whatsapp btn--full"

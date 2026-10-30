@@ -2,10 +2,11 @@ import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { getImageUrl, formatPrice } from '../utils/api';
+import { FALLBACK_IMAGE, SHOP, whatsappLink } from '../utils/shop';
 import { ShoppingBag, Trash2, Plus, Minus, MessageCircle, ArrowRight, Truck, Sparkles, ChevronRight } from 'lucide-react';
 import './CartPage.css';
 
-const FREE_SHIPPING_THRESHOLD = 25000;
+const FREE_SHIPPING_THRESHOLD = SHOP.freeDeliveryThreshold;
 
 export default function CartPage() {
   const { items, total, count, dispatch } = useCart();
@@ -36,11 +37,10 @@ export default function CartPage() {
     );
   }
 
-  const whatsappMessage = encodeURIComponent(
-    `Bonjour Bushra Machallah, je souhaite commander ces articles depuis mon panier :\n` +
+  const whatsappMessage =
+    `Bonjour ${SHOP.name}, je souhaite commander ces articles depuis mon panier :\n` +
     items.map(i => `- ${i.name} (x${i.quantity}) : ${formatPrice(i.price * i.quantity)}`).join('\n') +
-    `\n\nTotal : ${formatPrice(total)}`
-  );
+    `\n\nTotal : ${formatPrice(total)}`;
 
   return (
     <div className="cart-page">
@@ -94,9 +94,7 @@ export default function CartPage() {
 
             <div className="cart-items-list">
               {items.map((item) => {
-                const itemImg = item.image
-                  ? (item.image.startsWith('/') ? item.image : getImageUrl(item.image))
-                  : '/encensoir1.png';
+                const itemImg = getImageUrl(item.image || FALLBACK_IMAGE);
 
                 return (
                   <div key={`${item.productId}-${item.variantId || 'base'}`} className="cart-item-row">
@@ -199,7 +197,7 @@ export default function CartPage() {
               <div className="cart-summary-line">
                 <span>Livraison Dakar</span>
                 <span className={total >= FREE_SHIPPING_THRESHOLD ? 'cart-summary-free' : ''}>
-                  {total >= FREE_SHIPPING_THRESHOLD ? 'Gratuite' : '1 500 FCFA'}
+                  {total >= FREE_SHIPPING_THRESHOLD ? 'Gratuite' : formatPrice(SHOP.deliveryFee)}
                 </span>
               </div>
 
@@ -208,7 +206,7 @@ export default function CartPage() {
               <div className="cart-summary-line cart-summary-line--total">
                 <span>Total estimé</span>
                 <span className="cart-summary-total-val">
-                  {formatPrice(total >= FREE_SHIPPING_THRESHOLD ? total : total + 1500)}
+                  {formatPrice(total >= FREE_SHIPPING_THRESHOLD ? total : total + SHOP.deliveryFee)}
                 </span>
               </div>
             </div>
@@ -223,7 +221,7 @@ export default function CartPage() {
               </button>
 
               <a
-                href={`https://wa.me/221771234567?text=${whatsappMessage}`}
+                href={whatsappLink(whatsappMessage)}
                 target="_blank"
                 rel="noreferrer"
                 className="btn btn--whatsapp btn--full"

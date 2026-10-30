@@ -2,11 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { getImageUrl, formatPrice } from '../utils/api';
+import { isDemoId } from '../utils/shop';
 import { Check, Plus, Star, Heart, Flame, Sparkles, Clock } from 'lucide-react';
 import './ProductCard.css';
 
 export default function ProductCard({ product, variant = 'default' }) {
   const { dispatch } = useCart();
+  // Fiche de démonstration (catalogue de secours) : visible mais non commandable
+  const isDemo = isDemoId(product.id);
   const [added, setAdded] = useState(false);
   const [isFavorite, setIsFavorite] = useState(false);
 
@@ -40,12 +43,12 @@ export default function ProductCard({ product, variant = 'default' }) {
   };
 
   const mainImage = product.images?.[0]?.url || product.primary_image || product.image_url;
-  const isLocalImage = mainImage && mainImage.startsWith('/');
-  const imgSrc = isLocalImage ? mainImage : (mainImage ? getImageUrl(mainImage) : null);
+  const imgSrc = mainImage ? getImageUrl(mainImage) : null;
 
   const handleAdd = (e) => {
     e.preventDefault();
     e.stopPropagation();
+    if (isDemo) return;
     dispatch({
       type: 'ADD_ITEM',
       item: {
@@ -105,6 +108,11 @@ export default function ProductCard({ product, variant = 'default' }) {
               Nouveau
             </span>
           )}
+          {isDemo && (
+            <span className="product-card__badge product-card__badge--demo">
+              Démo
+            </span>
+          )}
         </div>
 
         {/* Olivra countdown deal badge */}
@@ -137,12 +145,15 @@ export default function ProductCard({ product, variant = 'default' }) {
         <button
           className={`product-card__quick-btn ${added ? 'product-card__quick-btn--added' : ''}`}
           onClick={handleAdd}
-          aria-label="Ajouter au panier"
+          disabled={isDemo}
+          aria-label={isDemo ? 'Produit de démonstration, non commandable' : 'Ajouter au panier'}
         >
-          {added ? (
+          {isDemo ? (
+            <span>Fiche démo — non commandable</span>
+          ) : added ? (
             <>
               <Check size={16} strokeWidth={2.2} />
-              <span>Ajouté ✓</span>
+              <span>Ajouté</span>
             </>
           ) : (
             <>

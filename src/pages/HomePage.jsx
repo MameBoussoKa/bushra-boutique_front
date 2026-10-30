@@ -2,7 +2,6 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   ArrowRight,
-  Flame,
   MessageCircle,
   Send,
   ShieldCheck,
@@ -10,11 +9,9 @@ import {
   Star,
   Truck,
   Clock,
-  ShoppingBag,
-  Check,
 } from 'lucide-react';
 import { api, formatPrice } from '../utils/api';
-import { useCart } from '../context/CartContext';
+import { SHOP, whatsappLink } from '../utils/shop';
 import ProductCard from '../components/ProductCard';
 import './HomePage.css';
 
@@ -347,9 +344,9 @@ const SIGNATURE_GALLERY = [
 ];
 
 const SOCIALS = [
-  { label: 'WhatsApp', href: 'https://wa.me/221771234567', type: 'whatsapp' },
-  { label: 'Instagram', href: 'https://instagram.com', type: 'instagram' },
-  { label: 'TikTok', href: 'https://www.tiktok.com', type: 'tiktok' },
+  { label: 'WhatsApp', href: whatsappLink(), type: 'whatsapp' },
+  { label: 'Instagram', href: SHOP.instagram, type: 'instagram' },
+  { label: 'TikTok', href: SHOP.tiktok, type: 'tiktok' },
 ];
 
 const INSTAGRAM_FEED = [
@@ -425,9 +422,11 @@ export default function HomePage() {
   const [newsletterSent, setNewsletterSent] = useState(false);
   const [activeTab, setActiveTab] = useState(PRODUCT_TABS[0].id);
   const [selectedCategory, setSelectedCategory] = useState('sprays');
-  const [spotlightAdded, setSpotlightAdded] = useState(false);
 
-  const { dispatch, openDrawer } = useCart();
+  // L'offre en vedette est une présentation : la commande se finalise sur WhatsApp
+  const spotlightOrderLink = whatsappLink(
+    `Bonjour ${SHOP.name}, je suis intéressé(e) par l'offre « ${SPOTLIGHT_DEAL.name} » à ${formatPrice(SPOTLIGHT_DEAL.base_price)}. Est-elle disponible ?`
+  );
 
   useEffect(() => {
     let isCurrent = true;
@@ -469,23 +468,6 @@ export default function HomePage() {
     }
   };
 
-  const handleAddSpotlight = () => {
-    dispatch({
-      type: 'ADD_ITEM',
-      item: {
-        productId: SPOTLIGHT_DEAL.id,
-        variantId: null,
-        name: SPOTLIGHT_DEAL.name,
-        price: SPOTLIGHT_DEAL.base_price,
-        image: SPOTLIGHT_DEAL.image,
-        quantity: 1,
-      },
-    });
-    setSpotlightAdded(true);
-    openDrawer?.();
-    setTimeout(() => setSpotlightAdded(false), 2000);
-  };
-
   const categoryCards = CATEGORY_CARDS.map((category) => {
     const matchingCategory = categories.find((item) => (
       item.slug === category.slug || slugify(item.name) === slugify(category.name)
@@ -498,6 +480,10 @@ export default function HomePage() {
         : category.link,
     };
   });
+
+  // Lien boutique d'un univers (identifiant réel de la catégorie quand elle existe)
+  const linkForCategory = (slug) =>
+    categoryCards.find((item) => item.slug === slug)?.link ?? '/produits';
 
   // Ensure full tabs display with seamless fallback
   const tabProducts = useMemo(() => {
@@ -626,7 +612,7 @@ export default function HomePage() {
         <h2 className="sr-only" id="home-promos-title">Nos collections en vedette</h2>
         <div className="container home-promos__inner">
           <Link
-            to="/produits?category=encensoirs"
+            to={linkForCategory('encensoirs')}
             className="home-promo home-promo--encensoirs"
           >
             <img
@@ -643,7 +629,7 @@ export default function HomePage() {
           </Link>
 
           <Link
-            to="/produits?category=thiouraye"
+            to={linkForCategory('thiouraye')}
             className="home-promo home-promo--gowe"
           >
             <img
@@ -760,21 +746,14 @@ export default function HomePage() {
 
               {/* Action Buttons */}
               <div className="home-spotlight__actions">
-                <button
-                  type="button"
-                  onClick={handleAddSpotlight}
+                <a
+                  href={spotlightOrderLink}
+                  target="_blank"
+                  rel="noreferrer"
                   className="home-button home-button--dark home-spotlight__btn-order"
                 >
-                  {spotlightAdded ? (
-                    <>
-                      <Check size={16} /> AJOUTÉ AU PANIER ✓
-                    </>
-                  ) : (
-                    <>
-                      <ShoppingBag size={16} /> COMMANDER MAINTENANT
-                    </>
-                  )}
-                </button>
+                  <MessageCircle size={16} /> COMMANDER SUR WHATSAPP
+                </a>
                 <Link to="/produits" className="home-button home-button--light home-spotlight__btn-more">
                   VOIR LES DÉTAILS <ArrowRight size={14} />
                 </Link>
@@ -827,7 +806,7 @@ export default function HomePage() {
                   Explorer nos collections <ArrowRight size={15} />
                 </Link>
                 <a
-                  href="https://wa.me/221771234567?text=Bonjour%20Bushra%20Machallah%2C%20je%20souhaite%20un%20conseil%20pour%20choisir%20un%20parfum."
+                  href={whatsappLink('Bonjour, je souhaite un conseil pour choisir un parfum.')}
                   target="_blank"
                   rel="noreferrer"
                   className="home-signature__link"
@@ -863,11 +842,11 @@ export default function HomePage() {
           {INSTAGRAM_FEED.map((feed, index) => (
             <a
               key={`${feed.tag}-${index}`}
-              href="https://instagram.com"
+              href={SHOP.instagram}
               target="_blank"
               rel="noreferrer"
               className="home-strip__item"
-              aria-label={`${feed.tag} — Instagram Bushra Machallah`}
+              aria-label={`${feed.tag} — Instagram ${SHOP.name}`}
             >
               <img src={feed.img} alt={feed.tag} loading="lazy" />
               <span className="home-strip__overlay">

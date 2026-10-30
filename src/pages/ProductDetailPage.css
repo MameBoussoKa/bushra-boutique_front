@@ -482,6 +482,18 @@
 }
 
 /* Responsive */
+/* Mention catalogue de démonstration */
+.product-summary__demo-note {
+  margin-top: 0.9rem;
+  padding: 0.75rem 0.95rem;
+  border: 1px dashed rgba(200, 162, 97, 0.35);
+  border-radius: var(--radius-md);
+  background: rgba(200, 162, 97, 0.06);
+  color: var(--color-ash);
+  font-size: 0.8rem;
+  line-height: 1.55;
+}
+
 @media (max-width: 992px) {
   .product-detail-grid {
     grid-template-columns: 1fr;

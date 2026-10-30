@@ -2,10 +2,11 @@ import React, { useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { getImageUrl, formatPrice } from '../utils/api';
+import { FALLBACK_IMAGE, SHOP, whatsappLink } from '../utils/shop';
 import { X, Trash2, Plus, Minus, ShoppingBag, ArrowRight, MessageCircle, Truck, Sparkles } from 'lucide-react';
 import './CartDrawer.css';
 
-const FREE_SHIPPING_THRESHOLD = 25000;
+const FREE_SHIPPING_THRESHOLD = SHOP.freeDeliveryThreshold;
 
 export default function CartDrawer() {
   const { items, total, count, isDrawerOpen, closeDrawer, dispatch } = useCart();
@@ -47,11 +48,10 @@ export default function CartDrawer() {
     navigate('/panier');
   };
 
-  const whatsappMessage = encodeURIComponent(
-    `Bonjour Bushra Machallah, je souhaite commander ces articles depuis votre boutique :\n` +
+  const whatsappMessage =
+    `Bonjour ${SHOP.name}, je souhaite commander ces articles depuis votre boutique :\n` +
     items.map(i => `- ${i.name} (x${i.quantity}) : ${formatPrice(i.price * i.quantity)}`).join('\n') +
-    `\n\nTotal : ${formatPrice(total)}`
-  );
+    `\n\nTotal : ${formatPrice(total)}`;
 
   return (
     <div className={`cart-drawer-wrapper ${isDrawerOpen ? 'cart-drawer-wrapper--open' : ''}`}>
@@ -122,9 +122,7 @@ export default function CartDrawer() {
           ) : (
             <div className="cart-drawer__items">
               {items.map((item) => {
-                const itemImg = item.image
-                  ? (item.image.startsWith('/') ? item.image : getImageUrl(item.image))
-                  : '/placeholder.jpg';
+                const itemImg = getImageUrl(item.image || FALLBACK_IMAGE);
 
                 return (
                   <div key={`${item.productId}-${item.variantId || 'base'}`} className="cart-drawer-item">
@@ -204,7 +202,7 @@ export default function CartDrawer() {
               <span className="cart-drawer__subtotal-val">{formatPrice(total)}</span>
             </div>
             <p className="cart-drawer__shipping-note">
-              Frais de livraison calculés à l'étape suivante (gratuite dès 25 000 FCFA).
+              Frais de livraison calculés à l'étape suivante (gratuite dès {formatPrice(FREE_SHIPPING_THRESHOLD)}).
             </p>
 
             <div className="cart-drawer__buttons">
@@ -214,7 +212,7 @@ export default function CartDrawer() {
               </button>
 
               <a
-                href={`https://wa.me/221771234567?text=${whatsappMessage}`}
+                href={whatsappLink(whatsappMessage)}
                 target="_blank"
                 rel="noreferrer"
                 className="btn btn--whatsapp btn--full"

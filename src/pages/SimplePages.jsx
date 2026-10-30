@@ -2,6 +2,8 @@
 import React from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { Check, Phone, Package, FileText, CheckCircle, Truck, Home, Leaf, FlaskConical, Globe, Gem, Mail, MapPin, MessageCircle } from 'lucide-react';
+import { SHOP, whatsappLink } from '../utils/shop';
+import { formatPrice } from '../utils/api';
 import './SimplePages.css';
 
 export function OrderConfirmationPage() {
@@ -38,7 +40,7 @@ export function OrderConfirmationPage() {
         <div className="confirm-info">
           <div className="confirm-info__item">
             <Phone size={18} strokeWidth={1.5} />
-            <span>Besoin d'aide ? Appelez-nous au <strong>+221 77 123 45 67</strong></span>
+            <span>Besoin d'aide ? Appelez-nous au <strong>{SHOP.phoneDisplay}</strong></span>
           </div>
           <div className="confirm-info__item">
             <Package size={18} strokeWidth={1.5} />
@@ -85,6 +87,10 @@ export function OrderTrackingPage() {
   ];
 
   const currentIdx = order ? statuses.findIndex(s => s.key === order.status) : -1;
+  const orderRef = order?.order_number || order?.orderNumber;
+  const adminNote = order?.adminNote || order?.admin_note;
+  const itemCount = order?.items?.length || 0;
+  const orderTotal = order?.total_amount ?? order?.total;
 
   return (
     <div className="simple-page">
@@ -128,9 +134,11 @@ export function OrderTrackingPage() {
           <div className="track-result">
             <div className="track-result__header">
               <div>
-                <div className="label" style={{ color: 'var(--color-amber)' }}>Commande #{order.order_number}</div>
+                <div className="label" style={{ color: 'var(--color-amber)' }}>Commande #{orderRef}</div>
                 <div style={{ color: 'var(--color-smoke)', fontSize: '0.85rem', marginTop: '0.25rem' }}>
-                  {order.items?.length} article{order.items?.length > 1 ? 's' : ''}
+                  {itemCount} article{itemCount > 1 ? 's' : ''}
+                  {orderTotal != null && ` — ${formatPrice(orderTotal)}`}
+                  {order.customerCity && ` — Livraison à ${order.customerCity}`}
                 </div>
               </div>
               <div className={`track-status-badge track-status-badge--${order.status}`}>
@@ -151,9 +159,9 @@ export function OrderTrackingPage() {
               ))}
             </div>
 
-            {order.admin_note && (
+            {adminNote && (
               <div className="track-note">
-                <strong>Note :</strong> {order.admin_note}
+                <strong>Note de la boutique :</strong> {adminNote}
               </div>
             )}
           </div>
@@ -252,8 +260,20 @@ export function ContactPage() {
 
   function update(k, v) { setForm(f => ({ ...f, [k]: v })); }
 
+  // Le message est transmis via WhatsApp : aucun e-mail serveur n'est configuré.
   function handleSubmit(e) {
     e.preventDefault();
+    const text = [
+      `Bonjour ${SHOP.name},`,
+      '',
+      form.message,
+      '',
+      `— ${form.name}`,
+      form.phone ? `Téléphone : ${form.phone}` : null,
+      form.email ? `Email : ${form.email}` : null,
+    ].filter(Boolean).join('\n');
+
+    window.open(whatsappLink(text), '_blank', 'noopener,noreferrer');
     setSent(true);
   }
 
@@ -271,10 +291,10 @@ export function ContactPage() {
 
           <div className="contact-channels">
             {[
-              { icon: <Phone size={20} strokeWidth={1.5} />, label: 'Téléphone', val: '+221 77 123 45 67', href: 'tel:+221771234567' },
-              { icon: <MessageCircle size={20} strokeWidth={1.5} />, label: 'WhatsApp', val: 'Discuter maintenant', href: 'https://wa.me/221771234567' },
-              { icon: <Mail size={20} strokeWidth={1.5} />, label: 'Email', val: 'contact@bushramachallah.sn', href: 'mailto:contact@bushramachallah.sn' },
-              { icon: <MapPin size={20} strokeWidth={1.5} />, label: 'Adresse', val: 'Dakar, Sénégal', href: null },
+              { icon: <Phone size={20} strokeWidth={1.5} />, label: 'Téléphone', val: SHOP.phoneDisplay, href: `tel:${SHOP.phone}` },
+              { icon: <MessageCircle size={20} strokeWidth={1.5} />, label: 'WhatsApp', val: 'Discuter maintenant', href: whatsappLink() },
+              { icon: <Mail size={20} strokeWidth={1.5} />, label: 'Email', val: SHOP.email, href: `mailto:${SHOP.email}` },
+              { icon: <MapPin size={20} strokeWidth={1.5} />, label: 'Adresse', val: SHOP.city, href: null },
             ].map((c, i) => (
               <div key={i} className="contact-channel">
                 <span className="contact-channel__icon">{c.icon}</span>
@@ -295,10 +315,19 @@ export function ContactPage() {
           {sent ? (
             <div className="contact-sent">
               <Check size={48} strokeWidth={2} color="var(--color-amber)" />
-              <h3 className="heading">Message envoyé !</h3>
+              <h3 className="heading">Message prêt dans WhatsApp</h3>
               <p style={{ color: 'var(--color-smoke)' }}>
-                Nous vous répondrons dans les plus brefs délais.
+                Envoyez-le depuis WhatsApp, nous répondons généralement dans la journée.
               </p>
+              <a
+                href={whatsappLink(`Bonjour ${SHOP.name},`)}
+                target="_blank"
+                rel="noreferrer"
+                className="btn btn--whatsapp btn--sm"
+                style={{ marginTop: '1rem' }}
+              >
+                <MessageCircle size={16} /> Ouvrir WhatsApp
+              </a>
             </div>
           ) : (
             <form className="contact-form" onSubmit={handleSubmit}>
@@ -351,10 +380,10 @@ export function CollectionsPage() {
             {[
               { name: 'Encensoirs Artisanaux', desc: 'Mabkhara sculptés à la main, modernes et traditionnels', img: '/encensoir1.png', to: '/produits?category=encensoirs' },
               { name: 'Thiouraye & Bakhour', desc: 'Gowé Bushra, Bushra Velours — encens 100% naturels', img: '/gowe-thiouray.png', to: '/produits?category=thiouraye' },
-              { name: 'Sprays & Parfums', desc: 'Nuage Secret, Fleur de Lune, Brume de Coton', img: '/sprays.png', to: '/produits?category=parfums' },
-              { name: 'Vétiver Naturel', desc: 'Paniers vétiver artisanaux pour purifier vos espaces', img: '/paniers-vetiver.png', to: '/produits?category=naturel' },
+              { name: 'Sprays & Parfums', desc: 'Nuage Secret, Fleur de Lune, Brume de Coton', img: '/sprays.png', to: '/produits?category=sprays' },
+              { name: 'Vétiver & Maison', desc: 'Paniers vétiver artisanaux pour purifier vos espaces', img: '/paniers-vetiver.png', to: '/produits?category=maison' },
               { name: 'Collection Prestige', desc: 'Nos encensoirs les plus exclusifs en laiton et bois', img: '/encensoir5.png', to: '/produits?featured=true' },
-              { name: 'Mabkhara Noire & Or', desc: 'Pour les amateurs de modernité et d\'élégance', img: '/encensoir3.png', to: '/produits?category=encensoirs' },
+              { name: 'Mabkhara Noire & Or', desc: 'Pour les amateurs de modernité et d\'élégance', img: '/encensoir3.png', to: '/produits?category=encensoirs&sort=newest' },
             ].map((col, i) => (
               <Link key={i} to={col.to} className="collection-card">
                 <div className="collection-card__img-wrap">
