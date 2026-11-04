@@ -1,500 +1,305 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { api, formatPrice, getImageUrl } from '../utils/api';
-import { ArrowRight, Check, Search, ShoppingCart, Package, Sparkles, MessageCircle, Flame, FlaskConical, Gift } from 'lucide-react';
+import { api } from '../utils/api';
+import { ArrowLeft, ArrowRight, Leaf, PackageCheck, ShieldCheck, Sparkles, Truck } from 'lucide-react';
 import ProductCard from '../components/ProductCard';
-import TransparentLogo from '../components/TransparentLogo';
+import { demoCategories, demoProducts } from '../utils/demoData';
 import './HomePage.css';
 
-/* ── Smoke particle SVG (ambient atmosphere) ─────────────── */
-function SmokeParticle({ style }) {
+function useHorizontalRail(syncKey) {
+  const ref = useRef(null);
+  const [canPrevious, setCanPrevious] = useState(false);
+  const [canNext, setCanNext] = useState(false);
+  const [progress, setProgress] = useState(0);
+
+  useEffect(() => {
+    const element = ref.current;
+    if (!element) return undefined;
+    const update = () => {
+      setCanPrevious(element.scrollLeft > 4);
+      setCanNext(element.scrollLeft + element.clientWidth < element.scrollWidth - 4);
+      const maxScroll = element.scrollWidth - element.clientWidth;
+      setProgress(maxScroll > 0 ? element.scrollLeft / maxScroll : 0);
+    };
+    update();
+    element.addEventListener('scroll', update, { passive: true });
+    const observer = new ResizeObserver(update);
+    observer.observe(element);
+    return () => {
+      element.removeEventListener('scroll', update);
+      observer.disconnect();
+    };
+  }, [syncKey]);
+
+  function move(direction) {
+    const element = ref.current;
+    if (!element) return;
+    const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    element.scrollBy({ left: direction * Math.max(element.clientWidth * 0.78, 240), behavior: reduceMotion ? 'auto' : 'smooth' });
+  }
+
+  return { ref, canPrevious, canNext, progress, move };
+}
+
+function RailArrows({ rail, label }) {
   return (
-    <div className="smoke-particle" style={style}>
-      <svg viewBox="0 0 40 120" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M20 110 Q28 90 18 70 Q8 50 22 30 Q30 15 20 0"
-          stroke="rgba(193,123,47,0.12)" strokeWidth="2" fill="none"
-          strokeLinecap="round"/>
-      </svg>
+    <div className="rail-arrows" aria-label={`Navigation ${label}`}>
+      <button type="button" onClick={() => rail.move(-1)} disabled={!rail.canPrevious} aria-label={`Faire défiler ${label} vers la gauche`}>
+        <ArrowLeft size={17} />
+      </button>
+      <button type="button" onClick={() => rail.move(1)} disabled={!rail.canNext} aria-label={`Faire défiler ${label} vers la droite`}>
+        <ArrowRight size={17} />
+      </button>
     </div>
   );
 }
 
-/* ── Counter animation ────────────────────────────────────── */
-function AnimatedCounter({ to, suffix = '' }) {
-  const [val, setVal] = useState(0);
-  const ref = useRef(null);
-  useEffect(() => {
-    const obs = new IntersectionObserver(([e]) => {
-      if (!e.isIntersecting) return;
-      obs.disconnect();
-      let start = 0;
-      const step = Math.ceil(to / 60);
-      const t = setInterval(() => {
-        start += step;
-        if (start >= to) { setVal(to); clearInterval(t); }
-        else setVal(start);
-      }, 20);
-    }, { threshold: 0.5 });
-    if (ref.current) obs.observe(ref.current);
-    return () => obs.disconnect();
-  }, [to]);
-  return <span ref={ref}>{val.toLocaleString('fr-FR')}{suffix}</span>;
+function categoryImage(name = '') {
+  const value = name.toLowerCase();
+  if (value.includes('encensoir') || value.includes('mabkhara') || value.includes('bois')) return '/encensoir1.png';
+  if (value.includes('thiouraye') || value.includes('encens') || value.includes('bakhour') || value.includes('gow')) return '/gowe-thiouray.png';
+  if (value.includes('parfum') || value.includes('spray') || value.includes('huile')) return '/sprays.png';
+  if (value.includes('cadeau') || value.includes('coffret')) return '/encensoir4.png';
+  return '/paniers-vetiver.png';
 }
 
-export default function HomePage() {
-  const [featuredProducts, setFeaturedProducts] = useState([]);
-  const [categories, setCategories] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [heroSlide, setHeroSlide] = useState(0);
-
-  const heroSlides = [
-    {
-      tag: 'Bushra Machallah',
-      title: "L'Art de\nl'Encens",
-      subtitle: "Des senteurs authentiques façonnées avec passion au cœur du Sénégal. Chaque volute de fumée, une invitation au voyage intérieur.",
-      cta: 'Découvrir la collection',
-      ctaTo: '/produits',
-      cta2: 'Voir toutes les senteurs',
-      cta2To: '/produits',
-      image: '/bacground-image.png',
-    },
-  ];
-
-  useEffect(() => {
-    Promise.all([
-      api.getProducts({ featured: true, limit: 8 }),
-      api.getCategories(),
-    ])
-      .then(([prod, cats]) => {
-        setFeaturedProducts(prod.data?.products || prod.data || []);
-        setCategories(cats.data || []);
-      })
-      .catch(console.error)
-      .finally(() => setLoading(false));
-  }, []);
-
-  useEffect(() => {
-    const t = setInterval(() => setHeroSlide(s => (s + 1) % heroSlides.length), 6000);
-    return () => clearInterval(t);
-  }, []);
-
-  const slide = heroSlides[heroSlide];
-
+function ProductCarousel({ products, loading, title, label, id }) {
+  const rail = useHorizontalRail(`${loading}-${products.length}`);
   return (
-    <main className="home">
-
-      {/* ══════════════════════════════════════
-          HERO — Plein écran, style référence
-          ══════════════════════════════════════ */}
-      <section className="hero">
-        {/* Real background image with overlay */}
-        <div
-          className="hero__bg-image"
-          style={{ backgroundImage: `url(${slide.image})` }}
-          aria-hidden
-        />
-        {/* Dark overlay for text readability */}
-        <div className="hero__overlay" aria-hidden />
-
-        {/* Decorative smoke */}
-        <div className="hero__smoke" aria-hidden>
-          {[0,1,2,3].map(i => (
-            <SmokeParticle key={i} style={{
-              left: `${15 + i * 22}%`,
-              bottom: '30%',
-              animationDelay: `${i * 1.2}s`,
-              animationDuration: `${4 + i * 0.8}s`,
-            }} />
-          ))}
+    <section className="home-collection" aria-labelledby={`${id}-title`}>
+      <div className="home-section-heading">
+        <div>
+          {label && <p className="home-eyebrow">{label}</p>}
+          <h2 id={`${id}-title`}>{title}</h2>
         </div>
-
-        {/* Decorative gold lines */}
-        <div className="hero__lines" aria-hidden>
-          <div className="hero__line hero__line--left" />
-          <div className="hero__line hero__line--right" />
+        <RailArrows rail={rail} label={title.toLowerCase()} />
+      </div>
+      {loading ? (
+        <div className="home-product-rail home-product-rail--loading" aria-label="Chargement des produits">
+          {Array.from({ length: 5 }, (_, index) => <div className="home-product-skeleton" key={index}><div /><span /><span /></div>)}
         </div>
-
-        {/* Content */}
-        <div className="container hero__content">
-          <div className="hero__inner" key={heroSlide}>
-            {/* Tag pill — like in the reference */}
-            {/* <div className="hero__tag animate-fadeUp">
-              <span className="hero__tag-dot" />
-              {slide.tag}
-            </div> */}
-
-            {/* Giant headline */}
-            <h1 className="hero__title display-xl animate-fadeUp delay-100">
-              {slide.title.split('\n').map((line, i) => (
-                <span key={i} className="hero__title-line">
-                  {i === 1 ? <em>{line}</em> : line}
-                </span>
-              ))}
-            </h1>
-
-            {/* Subtitle */}
-            <p className="hero__subtitle body-lg animate-fadeUp delay-200">
-              {slide.subtitle}
-            </p>
-
-            {/* CTAs */}
-            <div className="hero__ctas animate-fadeUp delay-300">
-              <Link to={slide.ctaTo} className="btn btn--primary hero__cta-primary">
-                {slide.cta}
-                <ArrowRight size={16} strokeWidth={2} />
-              </Link>
-              <Link to={slide.cta2To} className="btn btn--outline">
-                {slide.cta2}
-              </Link>
-            </div>
-
-            {/* Slide indicators */}
-            <div className="hero__dots animate-fadeUp delay-400">
-              {heroSlides.map((_, i) => (
-                <button
-                  key={i}
-                  className={`hero__dot ${i === heroSlide ? 'hero__dot--active' : ''}`}
-                  onClick={() => setHeroSlide(i)}
-                  aria-label={`Diapositive ${i + 1}`}
-                />
-              ))}
-            </div>
-          </div>
-
-          {/* Scroll hint */}
-          {/* <div className="hero__scroll animate-fadeIn delay-500">
-            <div className="hero__scroll-line" />
-            <span className="label">DÉFILER</span>
-          </div> */}
+      ) : products.length ? (
+        <div className="home-product-rail" ref={rail.ref} tabIndex="0" aria-label={title}>
+          {products.map(product => <div className="home-product-rail__item" key={product.id}><ProductCard product={product} /></div>)}
         </div>
-
-        {/* Incense product floating card */}
-          {/* <div className="hero__float-card animate-fadeUp delay-300">
-          <div className="hero__float-icon">
-            <TransparentLogo src="/logo.png" alt="Bushra" width={44} height={44} tolerance={60} />
-          </div>
-          <div>
-            <div className="hero__float-label label">Livraison à Dakar</div>
-            <div className="hero__float-val">Dès 25 000 FCFA</div>
-          </div>
-        </div> */}
-      </section>
-
-      {/* ══════════════════════════════════════
-          STATS BAND
-          ══════════════════════════════════════ */}
-      <section className="stats">
-        <div className="container stats__grid">
-          {[
-            { n: 500, s: '+', label: 'Produits artisanaux' },
-            { n: 2000, s: '+', label: 'Clients satisfaits' },
-            { n: 10, s: ' ans', label: "d'expertise" },
-            { n: 100, s: '%', label: 'Naturel & authentique' },
-          ].map((stat, i) => (
-            <div key={i} className="stats__item">
-              <div className="stats__number display-md">
-                <AnimatedCounter to={stat.n} suffix={stat.s} />
-              </div>
-              <div className="stats__label label">{stat.label}</div>
-            </div>
-          ))}
+      ) : (
+        <div className="home-rail-empty">
+          <p>Les produits de cette sélection seront bientôt disponibles.</p>
         </div>
-      </section>
-
-      {/* ══════════════════════════════════════
-          CATEGORIES GRID
-          ══════════════════════════════════════ */}
-      <section className="categories section">
-        <div className="container">
-          <header className="section-header">
-            <span className="label" style={{ color: 'var(--color-amber)' }}>Nos univers</span>
-            <h2 className="display-md section-header__title">Explorez nos collections</h2>
-            <div className="divider divider--left" />
-          </header>
-
-          <div className="categories__grid">
-            {categories.length > 0 ? categories.slice(0, 4).map((cat, i) => (
-              <Link key={cat.id} to={`/produits?category=${cat.id}`} className={`cat-card cat-card--${i}`}>
-                <div className="cat-card__inner">
-                  <div className="cat-card__icon">
-                    {getCategoryIcon(cat.name)}
-                  </div>
-                  <div className="cat-card__content">
-                    <h3 className="cat-card__name heading">{cat.name}</h3>
-                    {cat.description && (
-                      <p className="cat-card__desc">{cat.description}</p>
-                    )}
-                    <span className="cat-card__cta">
-                      Découvrir
-                      <ArrowRight size={14} strokeWidth={2} />
-                    </span>
-                  </div>
-                </div>
-              </Link>
-            )) : (
-              /* Fallback static categories with real product images */
-              [
-                { name: 'Encensoirs', desc: 'Mabkhara artisanaux & supports décoratifs', img: '/encensoir1.png' },
-                { name: 'Thiouraye', desc: 'Gowé, Bakhour & encens 100% naturels Bushra', img: '/gowe-thiouray.png' },
-                { name: 'Parfums & Sprays', desc: 'Nuage Secret, Fleur de Lune, Brume de Coton', img: '/sprays.png' },
-                { name: 'Vétiver & Naturels', desc: 'Paniers vétiver & senteurs de la nature', img: '/paniers-vetiver.png' },
-              ].map((cat, i) => (
-                <Link key={i} to="/produits" className={`cat-card cat-card--${i}`}>
-                  <div className="cat-card__inner">
-                    <div className="cat-card__image-wrap">
-                      <img src={cat.img} alt={cat.name} className="cat-card__img" />
-                    </div>
-                    <div className="cat-card__content">
-                      <h3 className="cat-card__name heading">{cat.name}</h3>
-                      <p className="cat-card__desc">{cat.desc}</p>
-                      <span className="cat-card__cta">
-                        Découvrir
-                        <ArrowRight size={14} strokeWidth={2} />
-                      </span>
-                    </div>
-                  </div>
-                </Link>
-              ))
-            )}
-          </div>
-        </div>
-      </section>
-
-      {/* ══════════════════════════════════════
-          FEATURED PRODUCTS
-          ══════════════════════════════════════ */}
-      <section className="featured section">
-        <div className="container">
-          <header className="section-header section-header--row">
-            <div>
-              <span className="label" style={{ color: 'var(--color-amber)' }}>Sélection du moment</span>
-              <h2 className="display-md section-header__title">Nos coups de cœur</h2>
-              <div className="divider divider--left" />
-            </div>
-            <Link to="/produits" className="btn btn--ghost">
-              Voir tout →
-            </Link>
-          </header>
-
-          {loading ? (
-            <div className="products-grid products-grid--skeleton">
-              {[...Array(8)].map((_, i) => (
-                <div key={i} className="skeleton-card">
-                  <div className="skeleton-img" />
-                  <div className="skeleton-text" />
-                  <div className="skeleton-text skeleton-text--short" />
-                </div>
-              ))}
-            </div>
-          ) : featuredProducts.length > 0 ? (
-            <div className="products-grid">
-              {featuredProducts.map(p => <ProductCard key={p.id} product={p} />)}
-            </div>
-          ) : (
-            /* Vitrine statique avec les vraies images pendant que le backend charge */
-            <div className="products-grid">
-              {[
-                { id: 's1', name: 'Mabkhara Prestige Orange', category_name: 'Encensoirs', price: 28000, image_url: '/encensoir1.png' },
-                { id: 's2', name: 'Mabkhara Dorée Étoile', category_name: 'Encensoirs', price: 22000, compare_price: 27000, image_url: '/encensoir2.png' },
-                { id: 's3', name: 'Mabkhara Noir & Or', category_name: 'Encensoirs', price: 19500, image_url: '/encensoir3.png' },
-                { id: 's4', name: 'Mabkhara Coupe Ivoire', category_name: 'Encensoirs', price: 24000, image_url: '/encensoir4.png' },
-                { id: 's5', name: 'Mabkhara Bois Précieux', category_name: 'Encensoirs', price: 35000, compare_price: 42000, is_featured: true, image_url: '/encensoir5.png' },
-                { id: 's6', name: 'Mabkhara Terre Cuite', category_name: 'Encensoirs', price: 17000, image_url: '/encensoir6.png' },
-                { id: 's7', name: 'Gowé Bushra & Bushra Velours', category_name: 'Thiouraye', price: 12500, image_url: '/gowe-thiouray.png' },
-                { id: 's8', name: 'Paniers Vétiver Naturel', category_name: 'Accessoires', price: 8000, image_url: '/paniers-vetiver.png' },
-              ].map(p => <ProductCard key={p.id} product={p} />)}
-            </div>
-          )}
-        </div>
-      </section>
-
-      {/* ══════════════════════════════════════
-          BRAND STORY SECTION
-          ══════════════════════════════════════ */}
-      <section className="story section">
-        <div className="container story__grid">
-          <div className="story__visual">
-            <div className="story__visual-inner">
-              <img
-                src="/bacground-image.png"
-                alt="Bushra Machallah — L'art des senteurs sénégalaises"
-                className="story__photo"
-              />
-              <div className="story__photo-badge">
-                <TransparentLogo src="/logo.png" alt="Bushra Machallah" className="story__photo-logo" tolerance={60} />
-              </div>
-            </div>
-          </div>
-
-          <div className="story__content">
-            <span className="label" style={{ color: 'var(--color-amber)' }}>Notre histoire</span>
-            <h2 className="display-lg" style={{ marginTop: '0.75rem' }}>
-              La tradition sénégalaise<br /><em>au service de vos sens</em>
-            </h2>
-            <div className="divider divider--left" />
-            <p className="body-lg" style={{ color: 'var(--color-ash)', marginBottom: '1.5rem' }}>
-              Bushra Machallah est née d'une passion pour les senteurs ancestrales du Sénégal. 
-              Nous sélectionnons avec soin des encens, bakhours et huiles parfumées auprès 
-              d'artisans locaux, pour vous offrir une expérience olfactive authentique et raffinée.
-            </p>
-            <p className="body" style={{ color: 'var(--color-smoke)', marginBottom: '2rem' }}>
-              Chaque produit raconte une histoire — celle des terres sénégalaises, de leurs 
-              marchés colorés, de leurs traditions de parfumerie transmises de génération en génération. 
-              Nos encensoirs sont façonnés par des artisans qui perpétuent un savoir-faire unique.
-            </p>
-            <div className="story__values">
-              {['100% Naturel', 'Artisanal', 'Sénégalais', 'Certifié'].map(v => (
-                <span key={v} className="story__value-tag">
-                  <Check size={12} strokeWidth={2.5} color="var(--color-amber)" />
-                  {v}
-                </span>
-              ))}
-            </div>
-            <div style={{ marginTop: '2.5rem', display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
-              <Link to="/a-propos" className="btn btn--primary">Notre histoire complète</Link>
-              <Link to="/contact" className="btn btn--outline">Nous contacter</Link>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ══════════════════════════════════════
-          PROCESS / HOW IT WORKS
-          ══════════════════════════════════════ */}
-      <section className="process section">
-        <div className="container">
-          <header className="section-header">
-            <span className="label" style={{ color: 'var(--color-amber)' }}>Simple et rapide</span>
-            <h2 className="display-md section-header__title">Comment commander ?</h2>
-            <div className="divider" />
-          </header>
-
-          <div className="process__steps">
-            {[
-              { icon: <Search size={28} strokeWidth={1.5} />, title: 'Choisissez', desc: 'Parcourez notre catalogue et sélectionnez vos senteurs préférées.' },
-              { icon: <ShoppingCart size={28} strokeWidth={1.5} />, title: 'Commandez', desc: 'Ajoutez vos articles au panier et passez votre commande en quelques clics.' },
-              { icon: <Package size={28} strokeWidth={1.5} />, title: 'Livraison', desc: 'Nous préparons votre commande avec soin et vous la livrons à domicile.' },
-              { icon: <Sparkles size={28} strokeWidth={1.5} />, title: 'Savourez', desc: 'Profitez de vos encens et senteurs dans votre foyer. Bakhour ma bakhour !' },
-            ].map((step, i) => (
-              <div key={i} className="process__step">
-                <div className="process__step-num">{String(i + 1).padStart(2, '0')}</div>
-                <div className="process__step-icon">{step.icon}</div>
-                <h3 className="process__step-title heading">{step.title}</h3>
-                <p className="process__step-desc">{step.desc}</p>
-                {i < 3 && <div className="process__connector" aria-hidden />}
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ══════════════════════════════════════
-          TESTIMONIALS
-          ══════════════════════════════════════ */}
-      <section className="testimonials section">
-        <div className="container">
-          <header className="section-header">
-            <span className="label" style={{ color: 'var(--color-amber)' }}>Ils nous font confiance</span>
-            <h2 className="display-md section-header__title">Ce que disent nos clients</h2>
-            <div className="divider" />
-          </header>
-
-          <div className="testimonials__grid">
-            {[
-              { name: 'Fatou Diallo', city: 'Dakar', text: "Les encens sont d'une qualité exceptionnelle. L'odeur envahit toute la maison et rappelle les meilleurs marchés de Dakar. Je recommande vivement !", stars: 5 },
-              { name: 'Aminata Sow', city: 'Saint-Louis', text: "L'encensoir que j'ai commandé est une véritable œuvre d'art. La livraison était rapide et l'emballage soigné. Parfait pour offrir.", stars: 5 },
-              { name: 'Moussa Ndiaye', city: 'Thiès', text: "Je commande régulièrement ici. Les huiles parfumées sont authentiques et le service client est excellent. Une boutique à recommander !", stars: 5 },
-            ].map((t, i) => (
-              <div key={i} className="testimonial-card">
-                <div className="testimonial-card__stars">
-                  {[...Array(t.stars)].map((_, s) => (
-                    <svg key={s} width="14" height="14" viewBox="0 0 24 24" fill="var(--color-amber)" stroke="none">
-                      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
-                    </svg>
-                  ))}
-                </div>
-                <p className="testimonial-card__text">"{t.text}"</p>
-                <div className="testimonial-card__author">
-                  <div className="testimonial-card__avatar">
-                    {t.name.charAt(0)}
-                  </div>
-                  <div>
-                    <div className="testimonial-card__name">{t.name}</div>
-                    <div className="testimonial-card__city label">{t.city}</div>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ══════════════════════════════════════
-          ORDER TRACKING CTA BANNER
-          ══════════════════════════════════════ */}
-      <section className="track-banner">
-        <div className="container track-banner__inner">
-          <div className="track-banner__content">
-            <h2 className="display-md">Suivez votre commande</h2>
-            <p style={{ color: 'var(--color-ash)' }}>
-              Entrez votre numéro de commande et votre téléphone pour suivre votre livraison en temps réel.
-            </p>
-          </div>
-          <Link to="/commande/suivi" className="btn btn--primary" style={{ flexShrink: 0 }}>
-            Suivre ma commande →
-          </Link>
-        </div>
-      </section>
-
-      {/* ══════════════════════════════════════
-          NEWSLETTER / CONTACT BANNER
-          ══════════════════════════════════════ */}
-      <section className="newsletter section">
-        <div className="container newsletter__inner">
-          <div className="newsletter__deco" aria-hidden>
-            <svg width="120" height="120" viewBox="0 0 120 120" fill="none" opacity="0.06">
-              <circle cx="60" cy="60" r="58" stroke="var(--color-amber)" strokeWidth="1"/>
-              <circle cx="60" cy="60" r="40" stroke="var(--color-amber)" strokeWidth="0.5"/>
-              <circle cx="60" cy="60" r="20" stroke="var(--color-amber)" strokeWidth="0.5"/>
-              <line x1="60" y1="2" x2="60" y2="118" stroke="var(--color-amber)" strokeWidth="0.5"/>
-              <line x1="2" y1="60" x2="118" y2="60" stroke="var(--color-amber)" strokeWidth="0.5"/>
-            </svg>
-          </div>
-          <div>
-            <span className="label" style={{ color: 'var(--color-amber)' }}>Restez informé</span>
-            <h2 className="display-md" style={{ marginTop: '0.5rem' }}>
-              Rejoignez la communauté<br /><em>Bushra Machallah</em>
-            </h2>
-            <p style={{ color: 'var(--color-ash)', marginTop: '1rem', maxWidth: '480px' }}>
-              Recevez en avant-première nos nouvelles collections, offres exclusives et conseils 
-              pour sublimer votre intérieur avec l'art des senteurs.
-            </p>
-          </div>
-          <div className="newsletter__form-wrap">
-            <Link to="/contact" className="btn btn--primary">
-              Nous contacter
-            </Link>
-            <a
-              href="https://wa.me/221771234567?text=Bonjour%2C%20je%20souhaite%20en%20savoir%20plus%20sur%20vos%20produits."
-              target="_blank"
-              rel="noreferrer"
-              className="btn btn--outline"
-            >
-              <MessageCircle size={18} />
-              WhatsApp
-            </a>
-          </div>
-        </div>
-      </section>
-    </main>
+      )}
+      <div className="rail-progress" aria-hidden="true"><span style={{ transform: `translateX(${rail.progress * 150}%)` }} /></div>
+    </section>
   );
 }
 
-function getCategoryIcon(name) {
-  const n = name.toLowerCase();
-  if (n.includes('encens') || n.includes('bakhour')) return <Flame size={28} strokeWidth={1.5} />;
-  if (n.includes('encensoir') || n.includes('mabkhara')) return <FlaskConical size={28} strokeWidth={1.5} />;
-  if (n.includes('huile') || n.includes('parfum') || n.includes('attar')) return <FlaskConical size={28} strokeWidth={1.5} />;
-  if (n.includes('coffret') || n.includes('cadeau')) return <Gift size={28} strokeWidth={1.5} />;
-  return <Sparkles size={28} strokeWidth={1.5} />;
+export default function HomePage() {
+  const [products, setProducts] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState('new');
+
+  const availableProducts = products.length ? products : demoProducts;
+  const hasRatings = availableProducts.some(product => Number(product.avg_rating) > 0);
+  const hasFeatured = availableProducts.some(product => product.is_featured);
+  const availableCategories = categories.length
+    ? categories.slice(0, 7).map(item => ({ ...item, image: categoryImage(item.name), to: `/produits?category=${encodeURIComponent(item.id)}` }))
+    : demoCategories.map(item => ({ ...item, image: categoryImage(item.name), to: `/produits?category=${encodeURIComponent(item.id)}` }));
+  const categoryRail = useHorizontalRail(availableCategories.length);
+
+  useEffect(() => {
+    let active = true;
+    Promise.allSettled([api.getProducts({ limit: 12 }), api.getCategories()]).then(([productResult, categoryResult]) => {
+      if (!active) return;
+      if (productResult.status === 'fulfilled') {
+        const rows = productResult.value.data?.products || productResult.value.data || [];
+        setProducts(Array.isArray(rows) && rows.length ? rows : demoProducts);
+      } else {
+        setProducts(demoProducts);
+      }
+      if (categoryResult.status === 'fulfilled') {
+        const rows = categoryResult.value.data?.categories || categoryResult.value.data || [];
+        setCategories(Array.isArray(rows) && rows.length ? rows : demoCategories);
+      } else {
+        setCategories(demoCategories);
+      }
+      setLoading(false);
+    });
+    return () => { active = false; };
+  }, []);
+
+  useEffect(() => {
+    if (!loading && ((activeTab === 'rating' && !hasRatings) || (activeTab === 'featured' && !hasFeatured))) {
+      setActiveTab('new');
+    }
+  }, [activeTab, hasFeatured, hasRatings, loading]);
+
+  const tabProducts = useMemo(() => {
+    if (activeTab === 'rating') {
+      const rated = availableProducts.filter(product => Number(product.avg_rating) > 0).sort((a, b) => Number(b.avg_rating) - Number(a.avg_rating));
+      return rated;
+    }
+    if (activeTab === 'featured') {
+      const featured = availableProducts.filter(product => product.is_featured);
+      return featured;
+    }
+    return availableProducts;
+  }, [activeTab, availableProducts]);
+
+  const bestProducts = useMemo(() => {
+    const rated = availableProducts.filter(product => Number(product.avg_rating) > 0).sort((a, b) => Number(b.avg_rating) - Number(a.avg_rating));
+    return (rated.length ? rated : availableProducts).slice(0, 8);
+  }, [availableProducts]);
+
+  const tabs = [
+    { id: 'new', label: 'À découvrir' },
+    { id: 'rating', label: 'Les mieux notés' },
+    { id: 'featured', label: 'En vedette' },
+  ];
+
+  return (
+    <main className="home">
+      <section className="home-hero" aria-labelledby="home-hero-title">
+        <div className="home-hero__image" aria-hidden="true" />
+        <div className="home-hero__shade" aria-hidden="true" />
+        <div className="home-hero__content">
+          <p className="home-hero__eyebrow">Bushra Machallah · Dakar</p>
+          <h1 id="home-hero-title">L’âme du Sénégal,<br /><em>au creux des senteurs</em></h1>
+          <p>Encens, thiouraye et objets parfumés pour faire de chaque maison un lieu à part.</p>
+          <Link to="/produits" className="home-hero__button">Explorer la boutique <ArrowRight size={15} /></Link>
+        </div>
+        <a className="home-hero__scroll" href="#univers" aria-label="Découvrir nos univers"><span /></a>
+      </section>
+
+      <section className="home-categories" id="univers" aria-label="Découvrir nos univers">
+        <div className="home-categories__head">
+          <p className="home-eyebrow">Choisissez votre univers</p>
+          <RailArrows rail={categoryRail} label="les univers" />
+        </div>
+        <div className="home-category-rail" ref={categoryRail.ref} tabIndex="0" aria-label="Défiler dans les univers Bushra">
+          {availableCategories.map(category => (
+            <Link className="home-category" to={category.to} key={category.id}>
+              <span className="home-category__image"><img src={category.image} alt="" loading="lazy" /></span>
+              <span>{category.name}</span>
+            </Link>
+          ))}
+        </div>
+        <div className="rail-progress" aria-hidden="true"><span style={{ transform: `translateX(${categoryRail.progress * 150}%)` }} /></div>
+      </section>
+
+      <section className="home-shop-section" aria-labelledby="shop-tabs-title">
+        <div className="home-tab-row" role="group" aria-label="Sélections de produits">
+          {tabs.map(tab => (
+            <button type="button" id={`tab-${tab.id}`} aria-pressed={activeTab === tab.id} className={activeTab === tab.id ? 'is-active' : ''} key={tab.id} disabled={!loading && ((tab.id === 'rating' && !hasRatings) || (tab.id === 'featured' && !hasFeatured))} onClick={() => setActiveTab(tab.id)}>{tab.label}</button>
+          ))}
+        </div>
+        <div className="home-tab-panel" id="home-tab-panel" aria-labelledby={`tab-${activeTab}`} aria-live="polite" key={activeTab}>
+          <ProductCarousel
+            id="shop-tabs"
+            title={activeTab === 'new' ? 'Une sélection de senteurs' : activeTab === 'rating' ? 'Les mieux notés' : 'En vedette'}
+            products={tabProducts.slice(0, 10)}
+            loading={loading}
+          />
+        </div>
+        <Link to="/produits" className="home-view-all">Voir toute la boutique <ArrowRight size={15} /></Link>
+      </section>
+
+      <section className="home-promo-categories" aria-label="Nos collections">
+        <Link to="/produits?search=thiouraye" className="home-promo-tile">
+          <img src="/gowe-thiouray.png" alt="Thiouraye Bushra" loading="lazy" />
+          <span className="home-promo-tile__caption"><small>Nos collections</small><strong>Thiouraye & bakhour</strong><ArrowRight size={16} /></span>
+        </Link>
+        <Link to="/produits?search=encensoir" className="home-promo-tile">
+          <img src="/Image collée.png" alt="L’univers des encensoirs Bushra" loading="lazy" />
+          <span className="home-promo-tile__caption"><small>Le geste parfumé</small><strong>Mabkhara & encensoirs</strong><ArrowRight size={16} /></span>
+        </Link>
+      </section>
+
+      <div className="home-best-section">
+        <ProductCarousel id="best-of" title="Sélection Bushra" label="Une sélection à découvrir" products={bestProducts} loading={loading} />
+      </div>
+
+      <div className="home-service-marquee" aria-label="Services Bushra">
+        <div className="home-service-marquee__track">
+          {Array.from({ length: 2 }, (_, repeat) => (
+            <span className="home-service-marquee__set" key={repeat} aria-hidden={repeat === 1}>
+              <span>Livraison offerte dès 25 000 FCFA</span><Sparkles size={16} />
+              <span>Paiement à la livraison</span><Sparkles size={16} />
+              <span>Wave · Orange Money</span><Sparkles size={16} />
+              <span>Suivi de commande en ligne</span><Sparkles size={16} />
+            </span>
+          ))}
+        </div>
+      </div>
+
+      <section className="home-signature">
+        <div className="home-signature__photo">
+          <img src="/bacground-image.png" alt="L’univers Bushra Machallah à Dakar" loading="lazy" />
+          <span className="home-signature__stamp">Bushra<br />Machallah</span>
+        </div>
+        <div className="home-signature__copy">
+          <p className="home-eyebrow">L’univers Bushra</p>
+          <h2>Le parfum d’un geste,<br /><em>la mémoire d’une maison.</em></h2>
+          <p>Du thiouraye aux encensoirs, chaque pièce accompagne les moments de partage et les rituels du quotidien. Une invitation à faire entrer les senteurs du Sénégal chez vous.</p>
+          <Link to="/a-propos" className="home-text-link">Découvrir notre histoire <ArrowRight size={15} /></Link>
+          <div className="home-signature__mini-products">
+            {[
+              { img: '/sprays.png', name: 'Parfums', to: '/produits?search=parfum' },
+              { img: '/encensoir5.png', name: 'Mabkhara', to: '/produits?search=encensoir' },
+              { img: '/paniers-vetiver.png', name: 'Vétiver', to: '/produits?search=vétiver' },
+            ].map(item => <Link to={item.to} key={item.name}><img src={item.img} alt="" loading="lazy" /><span>{item.name}</span></Link>)}
+          </div>
+        </div>
+      </section>
+
+      <section className="home-ritual-banner">
+        <img src="/Image collée.png" alt="" loading="lazy" />
+        <div className="home-ritual-banner__overlay" />
+        <div className="home-ritual-banner__copy">
+          <p className="home-eyebrow">Un rituel Bushra</p>
+          <h2>Une maison se raconte<br />aussi par son parfum.</h2>
+          <Link to="/collections" className="home-hero__button">Trouver votre senteur <ArrowRight size={15} /></Link>
+        </div>
+      </section>
+
+      <section className="home-gallery" aria-labelledby="home-gallery-title">
+        <div className="home-section-heading home-section-heading--center">
+          <div><p className="home-eyebrow">Dakar · Sénégal</p><h2 id="home-gallery-title">Dans l’univers Bushra</h2></div>
+        </div>
+        <div className="home-gallery__rail">
+          {[
+            { img: '/gowe-thiouray.png', alt: 'Thiouraye Bushra', to: '/produits?search=thiouraye' },
+            { img: '/encensoir2.png', alt: 'Encensoir doré', to: '/produits?search=encensoir' },
+            { img: '/sprays.png', alt: 'Parfums en spray', to: '/produits?search=parfum' },
+            { img: '/encensoir6.png', alt: 'Mabkhara artisanale', to: '/produits?search=mabkhara' },
+            { img: '/paniers-vetiver.png', alt: 'Vétiver naturel', to: '/produits?search=vétiver' },
+          ].map(image => <Link key={image.img} to={image.to}><img src={image.img} alt={image.alt} loading="lazy" /></Link>)}
+        </div>
+      </section>
+
+      <section className="home-stories" aria-labelledby="home-stories-title">
+        <div className="home-section-heading home-section-heading--center">
+          <div><p className="home-eyebrow">Notes de la maison</p><h2 id="home-stories-title">Les rituels Bushra</h2></div>
+        </div>
+        <div className="home-stories__grid">
+          {[
+            { image: '/gowe-thiouray.png', title: 'Le thiouraye, un parfum de partage', text: 'Une senteur qui accompagne les moments précieux de la maison.', to: '/produits?search=thiouraye' },
+            { image: '/encensoir1.png', title: 'Choisir son encensoir', text: 'Trouver la pièce qui s’accorde à votre rituel et à votre intérieur.', to: '/produits?search=encensoir' },
+            { image: '/sprays.png', title: 'Une touche parfumée au quotidien', text: 'Quelques gestes simples pour accueillir les senteurs chez soi.', to: '/collections' },
+          ].map(story => (
+            <article className="home-story-card" key={story.title}>
+              <Link to={story.to} className="home-story-card__image"><img src={story.image} alt="" loading="lazy" /></Link>
+              <div className="home-story-card__copy"><p className="home-eyebrow">Journal Bushra</p><h3>{story.title}</h3><p>{story.text}</p><Link to={story.to}>Lire la suite <ArrowRight size={14} /></Link></div>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className="home-trust-strip" aria-label="Services et informations">
+        <div><Truck size={26} /><h3>Livraison</h3><p>Offerte dès 25 000 FCFA</p></div>
+        <div><PackageCheck size={26} /><h3>Paiement simple</h3><p>À la livraison, Wave ou Orange Money</p></div>
+        <div><ShieldCheck size={26} /><h3>Commande suivie</h3><p>Retrouvez les étapes de votre livraison</p><Link to="/commande/suivi">Suivre ma commande</Link></div>
+        <div><Leaf size={26} /><h3>Maison sénégalaise</h3><p>Des senteurs inspirées d’ici</p></div>
+      </section>
+    </main>
+  );
 }

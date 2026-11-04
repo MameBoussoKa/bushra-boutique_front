@@ -4,6 +4,7 @@ import { api, getImageUrl, formatPrice } from '../utils/api';
 import { useCart } from '../context/CartContext';
 import { Check, ShoppingCart, MessageCircle, Star, Truck, Shield, Package, Image } from 'lucide-react';
 import ProductCard from '../components/ProductCard';
+import { demoProducts, getDemoProduct } from '../utils/demoData';
 import './ProductDetailPage.css';
 
 export default function ProductDetailPage() {
@@ -11,33 +12,56 @@ export default function ProductDetailPage() {
   const [product, setProduct] = useState(null);
   const [similar, setSimilar] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
   const [selectedVariant, setSelectedVariant] = useState(null);
   const [qty, setQty] = useState(1);
   const [activeImage, setActiveImage] = useState(0);
   const [added, setAdded] = useState(false);
   const [reviewForm, setReviewForm] = useState({ authorName: '', rating: 5, comment: '' });
   const [reviewSent, setReviewSent] = useState(false);
+  const [reviewLoading, setReviewLoading] = useState(false);
+  const [reviewError, setReviewError] = useState('');
+  const [demoMode, setDemoMode] = useState(false);
   const { dispatch } = useCart();
 
   useEffect(() => {
+    let active = true;
     setLoading(true);
-    Promise.all([api.getProduct(id), api.getSimilar(id)])
-      .then(([prod, sim]) => {
-        const p = prod.data;
+    setLoadError('');
+    setQty(1);
+    setReviewSent(false);
+    setReviewError('');
+    Promise.allSettled([api.getProduct(id), api.getSimilar(id)])
+      .then(([productResult, similarResult]) => {
+        if (!active) return;
+        const p = productResult.status === 'fulfilled' ? productResult.value.data : null;
+        if (!p) {
+          const demoProduct = getDemoProduct(id);
+          if (!demoProduct) {
+            setProduct(null);
+            setLoadError('Produit introuvable.');
+            return;
+          }
+          setProduct(demoProduct);
+          setSimilar(demoProducts.filter(item => item.category_id === demoProduct.category_id && item.id !== demoProduct.id).slice(0, 4));
+          setSelectedVariant(demoProduct.variants?.[0] || null);
+          setDemoMode(true);
+          setActiveImage(0);
+          return;
+        }
         setProduct(p);
+        setDemoMode(false);
         setSelectedVariant(p.variants?.[0] || null);
-        setSimilar(sim.data || []);
+        setSimilar(similarResult.status === 'fulfilled' ? (similarResult.value.data || []) : []);
         setActiveImage(0);
       })
-      .catch(console.error)
-      .finally(() => setLoading(false));
+      .finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
   }, [id]);
 
   function handleAddToCart() {
     if (!product) return;
-    const price = selectedVariant
-      ? product.base_price + (selectedVariant.price_delta || 0)
-      : product.base_price;
+    const price = Number(product.base_price ?? product.price ?? 0) + Number(selectedVariant?.price_delta ?? 0);
     dispatch({
       type: 'ADD_ITEM',
       item: {
@@ -45,7 +69,7 @@ export default function ProductDetailPage() {
         variantId: selectedVariant?.id || null,
         name: product.name,
         price: price,
-        image: product.images?.[0]?.url,
+        image: product.images?.[activeImage]?.url || product.images?.[0]?.url,
         variantName: selectedVariant?.name,
         quantity: qty,
       },
@@ -56,8 +80,20 @@ export default function ProductDetailPage() {
 
   async function handleReview(e) {
     e.preventDefault();
-    await api.createReview({ productId: product.id, ...reviewForm });
-    setReviewSent(true);
+    setReviewLoading(true);
+    setReviewError('');
+    try {
+      if (demoMode) {
+        setReviewSent(true);
+        return;
+      }
+      await api.createReview({ productId: product.id, ...reviewForm });
+      setReviewSent(true);
+    } catch {
+      setReviewError('Votre avis n’a pas pu être envoyé. Veuillez réessayer.');
+    } finally {
+      setReviewLoading(false);
+    }
   }
 
   if (loading) return (
@@ -67,19 +103,18 @@ export default function ProductDetailPage() {
   );
 
   if (!product) return (
-    <div style={{ textAlign: 'center', padding: '4rem', paddingTop: '120px' }}>
-      <p>Produit introuvable.</p>
-      <Link to="/produits" className="btn btn--primary" style={{ marginTop: '1rem' }}>
+    <div className="detail-not-found">
+      <p>{loadError || 'Produit introuvable.'}</p>
+      <Link to="/produits" className="btn btn--primary">
         Retour aux produits
       </Link>
     </div>
   );
 
-  const price = selectedVariant
-    ? product.base_price + (selectedVariant.price_delta || 0)
-    : product.base_price;
+  const price = Number(product.base_price ?? product.price ?? 0) + Number(selectedVariant?.price_delta ?? 0);
 
-  const stock = selectedVariant?.stock_quantity ?? product.default_stock ?? 0;
+  const stock = Number(selectedVariant?.stock_quantity ?? product.default_stock ?? 0);
+  const averageRating = Number(product.avg_rating ?? 0);
   const inStock = stock > 0;
 
   return (
@@ -90,7 +125,7 @@ export default function ProductDetailPage() {
         <span>/</span>
         <Link to="/produits">Produits</Link>
         <span>/</span>
-        <span>{product.name}</span>
+        <span aria-current="page">{product.name}</span>
       </div>
 
       {/* Main product section */}
@@ -117,8 +152,10 @@ export default function ProductDetailPage() {
                   key={i}
                   className={`detail-images__thumb ${i === activeImage ? 'detail-images__thumb--active' : ''}`}
                   onClick={() => setActiveImage(i)}
+                  aria-label={`Afficher la photo ${i + 1}`}
+                  aria-pressed={i === activeImage}
                 >
-                  <img src={getImageUrl(img.url)} alt={`Vue ${i + 1}`} />
+                  <img src={getImageUrl(img.url)} alt="" />
                 </button>
               ))}
             </div>
@@ -133,20 +170,20 @@ export default function ProductDetailPage() {
           <h1 className="display-md detail-info__title">{product.name}</h1>
 
           {/* Rating */}
-          {product.avg_rating > 0 && (
+          {averageRating > 0 && (
             <div className="detail-info__rating">
               {[1,2,3,4,5].map(s => (
-                <Star key={s} size={16} fill={s <= Math.round(product.avg_rating) ? 'var(--color-amber)' : 'none'} stroke="var(--color-amber)" strokeWidth={1.5} />
+                <Star key={s} size={16} fill={s <= Math.round(averageRating) ? 'var(--color-amber)' : 'none'} stroke="var(--color-amber)" strokeWidth={1.5} />
               ))}
               <span style={{ fontSize: '0.85rem', color: 'var(--color-smoke)', marginLeft: '0.5rem' }}>
-                {product.avg_rating.toFixed(1)} ({product.review_count} avis)
+                {averageRating.toFixed(1)} ({product.review_count || 0} avis)
               </span>
             </div>
           )}
 
           <div className="detail-info__price-wrap">
             <span className="detail-info__price">{formatPrice(price)}</span>
-            {product.compare_price > product.base_price && (
+            {Number(product.compare_price) > Number(product.base_price ?? product.price) && (
               <span className="detail-info__compare">{formatPrice(product.compare_price)}</span>
             )}
           </div>
@@ -168,11 +205,12 @@ export default function ProductDetailPage() {
                   <button
                     key={v.id}
                     className={`detail-info__variant-btn ${selectedVariant?.id === v.id ? 'active' : ''}`}
-                    onClick={() => setSelectedVariant(v)}
+                    onClick={() => { setSelectedVariant(v); setQty(current => Math.max(1, Math.min(current, Number(v.stock_quantity ?? stock)))); }}
+                    aria-pressed={selectedVariant?.id === v.id}
                   >
                     {v.name}
-                    {v.price_delta !== 0 && (
-                      <span> (+{formatPrice(Math.abs(v.price_delta))})</span>
+                    {Number(v.price_delta ?? 0) !== 0 && (
+                      <span> ({Number(v.price_delta) > 0 ? '+' : '−'}{formatPrice(Math.abs(Number(v.price_delta)))})</span>
                     )}
                   </button>
                 ))}
@@ -189,11 +227,12 @@ export default function ProductDetailPage() {
           {/* Qty + Add */}
           <div className="detail-info__actions">
             <div className="detail-info__qty">
-              <button onClick={() => setQty(q => Math.max(1, q - 1))} disabled={qty <= 1}>−</button>
-              <span>{qty}</span>
-              <button onClick={() => setQty(q => Math.min(stock, q + 1))} disabled={qty >= stock || !inStock}>+</button>
+              <button type="button" aria-label="Retirer un article" onClick={() => setQty(q => Math.max(1, q - 1))} disabled={qty <= 1}>−</button>
+              <span aria-live="polite">{qty}</span>
+              <button type="button" aria-label="Ajouter un article" onClick={() => setQty(q => Math.min(stock, q + 1))} disabled={qty >= stock || !inStock}>+</button>
             </div>
             <button
+              type="button"
               className={`btn btn--primary detail-info__add-btn ${added ? 'added' : ''}`}
               onClick={handleAddToCart}
               disabled={!inStock}
@@ -227,7 +266,7 @@ export default function ProductDetailPage() {
           <div className="detail-info__features">
             {[
               { icon: <Truck size={18} strokeWidth={1.5} />, text: 'Livraison gratuite dès 25 000 FCFA' },
-              { icon: <Shield size={18} strokeWidth={1.5} />, text: '100% naturel et authentique' },
+              { icon: <Shield size={18} strokeWidth={1.5} />, text: 'Sélectionné avec soin' },
               { icon: <Package size={18} strokeWidth={1.5} />, text: 'Emballage soigné' },
             ].map((f, i) => (
               <div key={i} className="detail-info__feature">
@@ -276,12 +315,14 @@ export default function ProductDetailPage() {
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--color-amber)" strokeWidth="2">
               <polyline points="20 6 9 17 4 12"/>
             </svg>
-            <p>Merci pour votre avis ! Il sera publié après validation.</p>
+            <p>{demoMode ? 'Avis de démonstration ajouté à cet aperçu.' : 'Merci pour votre avis ! Il sera publié après validation.'}</p>
           </div>
         ) : (
           <form className="review-form" onSubmit={handleReview}>
+            {reviewError && <p className="review-error" role="alert">{reviewError}</p>}
             <input
               type="text"
+              aria-label="Votre nom"
               placeholder="Votre nom"
               value={reviewForm.authorName}
               onChange={e => setReviewForm(f => ({ ...f, authorName: e.target.value }))}
@@ -295,6 +336,8 @@ export default function ProductDetailPage() {
                   type="button"
                   key={s}
                   onClick={() => setReviewForm(f => ({ ...f, rating: s }))}
+                  aria-label={`${s} étoile${s > 1 ? 's' : ''}`}
+                  aria-pressed={reviewForm.rating === s}
                 >
                   <svg width="20" height="20" viewBox="0 0 24 24"
                     fill={s <= reviewForm.rating ? 'var(--color-amber)' : 'none'}
@@ -305,14 +348,15 @@ export default function ProductDetailPage() {
               ))}
             </div>
             <textarea
+              aria-label="Votre commentaire"
               placeholder="Votre commentaire…"
               value={reviewForm.comment}
               onChange={e => setReviewForm(f => ({ ...f, comment: e.target.value }))}
               rows={4}
               className="review-form__input review-form__textarea"
             />
-            <button type="submit" className="btn btn--primary">
-              Publier l'avis
+            <button type="submit" className="btn btn--primary" disabled={reviewLoading}>
+              {reviewLoading ? 'Envoi…' : 'Publier l’avis'}
             </button>
           </form>
         )}

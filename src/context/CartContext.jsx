@@ -56,7 +56,11 @@ export function CartProvider({ children }) {
   });
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    } catch {
+      // The in-memory cart remains usable when browser storage is unavailable.
+    }
   }, [state]);
 
   const total = state.items.reduce((sum, i) => sum + i.price * i.quantity, 0);

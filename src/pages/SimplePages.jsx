@@ -1,20 +1,19 @@
 // ── ORDER CONFIRMATION ───────────────────────────────────────
 import React from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { Check, Phone, Package, FileText, CheckCircle, Truck, Home, Leaf, FlaskConical, Globe, Gem, Mail, MapPin, MessageCircle } from 'lucide-react';
+import { Check, Phone, Package, FileText, CheckCircle, Truck, Home, Leaf, FlaskConical, Globe, Gem, Mail, MapPin, MessageCircle, ArrowRight } from 'lucide-react';
 import './SimplePages.css';
 
 export function OrderConfirmationPage() {
   const [params] = useSearchParams();
   const orderNum = params.get('order');
+  const isDemoOrder = params.get('demo') === '1';
 
   return (
     <div className="simple-page">
       <div className="container simple-page__content">
-        <div className="confirm-icon">
-          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--color-amber)" strokeWidth="1.5">
-            <polyline points="20 6 9 17 4 12"/>
-          </svg>
+        <div className="confirm-icon" aria-hidden="true">
+          <Check size={34} strokeWidth={1.7} />
         </div>
         <h1 className="display-lg confirm-title">Commande confirmée !</h1>
         {orderNum && (
@@ -24,8 +23,9 @@ export function OrderConfirmationPage() {
           </div>
         )}
         <p className="body-lg confirm-desc">
-          Merci pour votre commande ! Nous vous contacterons sous peu pour confirmer 
-          la livraison. Gardez votre numéro de commande pour le suivi.
+          {isDemoOrder
+            ? 'Commande de démonstration créée : elle permet de visualiser le parcours, mais n’a pas été transmise à la boutique.'
+            : 'Merci pour votre commande ! Nous vous contacterons sous peu pour confirmer la livraison. Gardez votre numéro de commande pour le suivi.'}
         </p>
         <div className="confirm-actions">
           <Link to="/commande/suivi" className="btn btn--primary">
@@ -42,7 +42,7 @@ export function OrderConfirmationPage() {
           </div>
           <div className="confirm-info__item">
             <Package size={18} strokeWidth={1.5} />
-            <span>Livraison estimée : <strong>1–3 jours ouvrables</strong></span>
+            <span>Nous vous contacterons pour préciser les modalités de livraison.</span>
           </div>
         </div>
       </div>
@@ -67,6 +67,17 @@ export function OrderTrackingPage() {
     setError('');
     setOrder(null);
     try {
+      if (orderNumber.trim().toUpperCase().startsWith('DEMO-')) {
+        const demoOrders = JSON.parse(localStorage.getItem('bushra_demo_orders') || '[]');
+        const phoneDigits = phone.replace(/\D/g, '');
+        const demoOrder = demoOrders.find(item =>
+          item.order_number === orderNumber.trim().toUpperCase()
+          && item.customer_phone?.replace(/\D/g, '') === phoneDigits
+        );
+        if (!demoOrder) throw new Error('Commande de démonstration introuvable dans ce navigateur. Vérifiez le numéro et le téléphone.');
+        setOrder(demoOrder);
+        return;
+      }
       const res = await api.trackOrder(orderNumber, phone);
       setOrder(res.data);
     } catch (err) {
@@ -94,10 +105,11 @@ export function OrderTrackingPage() {
           Où est ma commande ?
         </h1>
 
-        <form onSubmit={handleTrack} className="track-form">
+        <form onSubmit={handleTrack} className="track-form" aria-label="Formulaire de suivi de commande">
           <div className="form-field">
-            <label>Numéro de commande</label>
+            <label htmlFor="tracking-order-number">Numéro de commande</label>
             <input
+              id="tracking-order-number"
               type="text"
               value={orderNumber}
               onChange={e => setOrderNumber(e.target.value)}
@@ -106,8 +118,9 @@ export function OrderTrackingPage() {
             />
           </div>
           <div className="form-field">
-            <label>Numéro de téléphone</label>
+            <label htmlFor="tracking-phone">Numéro de téléphone</label>
             <input
+              id="tracking-phone"
               type="tel"
               value={phone}
               onChange={e => setPhone(e.target.value)}
@@ -121,11 +134,11 @@ export function OrderTrackingPage() {
         </form>
 
         {error && (
-          <div className="track-error">{error}</div>
+          <div className="track-error" role="alert">{error}</div>
         )}
 
         {order && (
-          <div className="track-result">
+          <div className="track-result" aria-live="polite">
             <div className="track-result__header">
               <div>
                 <div className="label" style={{ color: 'var(--color-amber)' }}>Commande #{order.order_number}</div>
@@ -168,7 +181,7 @@ export function AboutPage() {
   return (
     <div className="simple-page">
       <div className="about-hero">
-        <div className="about-hero__bg" style={{ backgroundImage: 'url(/bacground-image.png)' }} />
+        <div className="about-hero__bg" role="img" aria-label="L'univers parfumé de Bushra Machallah" style={{ backgroundImage: 'url(/bacground-image.png)' }} />
         <div className="about-hero__overlay" />
         <div className="container about-hero__content">
           <span className="label" style={{ color: 'var(--color-amber)' }}>Notre histoire</span>
@@ -197,10 +210,10 @@ export function AboutPage() {
 
           <div className="about-values">
             {[
-              { icon: <Leaf size={32} strokeWidth={1.5} />, title: '100% Naturel', desc: 'Tous nos produits sont naturels, sans additifs chimiques.', img: '/paniers-vetiver.png' },
-              { icon: <FlaskConical size={32} strokeWidth={1.5} />, title: 'Artisanal', desc: 'Fabriqués à la main par des artisans sénégalais.', img: '/encensoir6.png' },
-              { icon: <Globe size={32} strokeWidth={1.5} />, title: 'Local', desc: 'Nous soutenons les producteurs locaux du Sénégal.', img: '/gowe-thiouray.png' },
-              { icon: <Gem size={32} strokeWidth={1.5} />, title: 'Premium', desc: 'Une sélection rigoureuse des meilleurs produits.', img: '/encensoir2.png' },
+              { icon: <Leaf size={32} strokeWidth={1.5} />, title: 'Senteurs choisies', desc: 'Une sélection de senteurs et d’objets pour la maison.', img: '/paniers-vetiver.png' },
+              { icon: <FlaskConical size={32} strokeWidth={1.5} />, title: 'Savoir-faire', desc: 'Des objets inspirés des gestes et des traditions.', img: '/encensoir6.png' },
+              { icon: <Globe size={32} strokeWidth={1.5} />, title: 'Ancrage local', desc: 'Un univers imaginé à Dakar, au Sénégal.', img: '/gowe-thiouray.png' },
+              { icon: <Gem size={32} strokeWidth={1.5} />, title: 'Art de vivre', desc: 'Des pièces pour accompagner les moments du quotidien.', img: '/encensoir2.png' },
             ].map((v, i) => (
               <div key={i} className="about-value-card">
                 <div className="about-value-card__img-wrap">
@@ -248,13 +261,21 @@ export function AboutPage() {
 // ── CONTACT PAGE ──────────────────────────────────────────────
 export function ContactPage() {
   const [form, setForm] = useState({ name: '', email: '', phone: '', message: '' });
-  const [sent, setSent] = useState(false);
+  const [messageUrl, setMessageUrl] = useState('');
 
   function update(k, v) { setForm(f => ({ ...f, [k]: v })); }
 
   function handleSubmit(e) {
     e.preventDefault();
-    setSent(true);
+    const message = [
+      'Bonjour Bushra Machallah,',
+      `Je m’appelle ${form.name}.`,
+      form.email && `Email : ${form.email}`,
+      form.phone && `Téléphone : ${form.phone}`,
+      '',
+      form.message,
+    ].filter(Boolean).join('\n');
+    setMessageUrl(`https://wa.me/221771234567?text=${encodeURIComponent(message)}`);
   }
 
   return (
@@ -266,7 +287,7 @@ export function ContactPage() {
           <div className="divider divider--left" />
           <p className="body-lg" style={{ color: 'var(--color-ash)' }}>
             Une question sur un produit ? Un problème avec votre commande ? 
-            Notre équipe est disponible 7j/7 pour vous aider.
+            Notre équipe est disponible pour vous aider.
           </p>
 
           <div className="contact-channels">
@@ -292,34 +313,36 @@ export function ContactPage() {
         </div>
 
         <div className="contact-form-wrap">
-          {sent ? (
+          {messageUrl ? (
             <div className="contact-sent">
-              <Check size={48} strokeWidth={2} color="var(--color-amber)" />
-              <h3 className="heading">Message envoyé !</h3>
+              <MessageCircle size={48} strokeWidth={1.7} color="var(--color-amber)" />
+              <h3 className="heading">Votre message est prêt</h3>
               <p style={{ color: 'var(--color-smoke)' }}>
-                Nous vous répondrons dans les plus brefs délais.
+                Ouvrez WhatsApp pour l’envoyer à notre équipe.
               </p>
+              <a className="btn btn--primary" href={messageUrl} target="_blank" rel="noreferrer">Ouvrir WhatsApp</a>
+              <button type="button" className="catalog-reset" onClick={() => setMessageUrl('')}>Modifier le message</button>
             </div>
           ) : (
             <form className="contact-form" onSubmit={handleSubmit}>
               <h2 className="heading" style={{ marginBottom: 'var(--space-md)' }}>Envoyer un message</h2>
               <div className="form-field">
-                <label>Nom complet *</label>
-                <input type="text" value={form.name} onChange={e => update('name', e.target.value)} required />
+                <label htmlFor="contact-name">Nom complet *</label>
+                <input id="contact-name" name="name" autoComplete="name" type="text" value={form.name} onChange={e => update('name', e.target.value)} required />
               </div>
               <div className="form-grid-2">
                 <div className="form-field">
-                  <label>Email</label>
-                  <input type="email" value={form.email} onChange={e => update('email', e.target.value)} />
+                  <label htmlFor="contact-email">Email</label>
+                  <input id="contact-email" name="email" autoComplete="email" type="email" value={form.email} onChange={e => update('email', e.target.value)} />
                 </div>
                 <div className="form-field">
-                  <label>Téléphone</label>
-                  <input type="tel" value={form.phone} onChange={e => update('phone', e.target.value)} />
+                  <label htmlFor="contact-phone">Téléphone</label>
+                  <input id="contact-phone" name="phone" autoComplete="tel" type="tel" value={form.phone} onChange={e => update('phone', e.target.value)} />
                 </div>
               </div>
               <div className="form-field">
-                <label>Message *</label>
-                <textarea value={form.message} onChange={e => update('message', e.target.value)} rows={5} required />
+                <label htmlFor="contact-message">Message *</label>
+                <textarea id="contact-message" name="message" value={form.message} onChange={e => update('message', e.target.value)} rows={5} required />
               </div>
               <button type="submit" className="btn btn--primary btn--full">
                 Envoyer le message
@@ -337,24 +360,25 @@ export function CollectionsPage() {
   return (
     <div className="simple-page">
       <div className="container">
-        <div style={{ paddingTop: 'var(--space-3xl)', paddingBottom: 'var(--space-3xl)', textAlign: 'center' }}>
+        <header className="collections-intro">
           <span className="label" style={{ color: 'var(--color-amber)' }}>Univers de senteurs</span>
           <h1 className="display-lg" style={{ marginTop: '0.5rem', marginBottom: '1rem' }}>
             Nos Collections
           </h1>
           <div className="divider" />
-          <p className="body-lg" style={{ color: 'var(--color-ash)', maxWidth: 520, margin: '1rem auto 3rem' }}>
+          <p className="body-lg">
             Plongez dans nos univers olfactifs soigneusement composés pour chaque moment de votre vie.
           </p>
+        </header>
 
-          <div className="collections-grid">
+          <section className="collections-grid" aria-label="Nos univers de senteurs">
             {[
-              { name: 'Encensoirs Artisanaux', desc: 'Mabkhara sculptés à la main, modernes et traditionnels', img: '/encensoir1.png', to: '/produits?category=encensoirs' },
-              { name: 'Thiouraye & Bakhour', desc: 'Gowé Bushra, Bushra Velours — encens 100% naturels', img: '/gowe-thiouray.png', to: '/produits?category=thiouraye' },
-              { name: 'Sprays & Parfums', desc: 'Nuage Secret, Fleur de Lune, Brume de Coton', img: '/sprays.png', to: '/produits?category=parfums' },
-              { name: 'Vétiver Naturel', desc: 'Paniers vétiver artisanaux pour purifier vos espaces', img: '/paniers-vetiver.png', to: '/produits?category=naturel' },
-              { name: 'Collection Prestige', desc: 'Nos encensoirs les plus exclusifs en laiton et bois', img: '/encensoir5.png', to: '/produits?featured=true' },
-              { name: 'Mabkhara Noire & Or', desc: 'Pour les amateurs de modernité et d\'élégance', img: '/encensoir3.png', to: '/produits?category=encensoirs' },
+              { name: 'Encensoirs Artisanaux', desc: 'Mabkhara modernes et traditionnels', img: '/encensoir1.png', to: '/produits?search=encensoir' },
+              { name: 'Thiouraye & Bakhour', desc: 'Gowé Bushra et senteurs traditionnelles', img: '/gowe-thiouray.png', to: '/produits?search=thiouraye' },
+              { name: 'Sprays & Parfums', desc: 'Brumes parfumées pour la maison', img: '/sprays.png', to: '/produits?search=parfum' },
+              { name: 'Vétiver Naturel', desc: 'Paniers en vétiver et accessoires naturels', img: '/paniers-vetiver.png', to: '/produits?search=vétiver' },
+              { name: 'Collection Prestige', desc: 'Une sélection d’encensoirs et de pièces remarquables', img: '/encensoir5.png', to: '/produits?search=prestige' },
+              { name: 'Mabkhara Noire & Or', desc: 'Des lignes sobres aux détails dorés', img: '/encensoir3.png', to: '/produits?search=mabkhara' },
             ].map((col, i) => (
               <Link key={i} to={col.to} className="collection-card">
                 <div className="collection-card__img-wrap">
@@ -363,12 +387,11 @@ export function CollectionsPage() {
                 <div className="collection-card__body">
                   <h3 className="heading collection-card__name">{col.name}</h3>
                   <p className="collection-card__desc">{col.desc}</p>
-                  <span className="collection-card__link">Découvrir →</span>
+                  <span className="collection-card__link">Découvrir <ArrowRight size={15} aria-hidden="true" /></span>
                 </div>
               </Link>
             ))}
-          </div>
-        </div>
+          </section>
       </div>
     </div>
   );

@@ -9,6 +9,9 @@ export default function ProductCard({ product }) {
   const { dispatch } = useCart();
   const [added, setAdded] = useState(false);
 
+  const selectedVariant = product.variants?.[0] || null;
+  const basePrice = Number(product.base_price ?? product.price ?? 0);
+  const currentPrice = basePrice + Number(selectedVariant?.price_delta ?? 0);
   const mainImage = product.images?.[0]?.url || product.primary_image || product.image_url;
   // Détecter si c'est une image locale (commence par /) vs upload backend
   const isLocalImage = mainImage && mainImage.startsWith('/');
@@ -20,10 +23,11 @@ export default function ProductCard({ product }) {
       type: 'ADD_ITEM',
       item: {
         productId: product.id,
-        variantId: product.variants?.[0]?.id || null,
+        variantId: selectedVariant?.id || null,
         name: product.name,
-        price: product.base_price || product.price,
+        price: currentPrice,
         image: mainImage,
+        variantName: selectedVariant?.name,
         quantity: 1,
       },
     });
@@ -31,13 +35,14 @@ export default function ProductCard({ product }) {
     setTimeout(() => setAdded(false), 1500);
   }
 
-  const discount = product.compare_price && product.compare_price > (product.base_price || product.price)
-    ? Math.round((1 - (product.base_price || product.price) / product.compare_price) * 100)
+  const discount = product.compare_price && product.compare_price > currentPrice
+    ? Math.round((1 - currentPrice / product.compare_price) * 100)
     : null;
 
   return (
     <article className="product-card">
-      <Link to={`/produits/${product.id}`} className="product-card__image-wrap">
+      <div className="product-card__image-wrap">
+        <Link to={`/produits/${product.id}`} className="product-card__image-link" aria-label={`Voir ${product.name}`}>
         {imgSrc ? (
           <img
             src={imgSrc}
@@ -54,10 +59,13 @@ export default function ProductCard({ product }) {
         {product.is_featured && !discount && (
           <span className="product-card__badge product-card__badge--featured">Coup de ♥</span>
         )}
+        </Link>
         <button
+          type="button"
           className={`product-card__quick-add ${added ? 'product-card__quick-add--done' : ''}`}
           onClick={handleAdd}
-          aria-label={added ? 'Ajouté' : 'Ajouter au panier'}
+          aria-label={added ? `${product.name} ajouté au panier` : `Ajouter ${product.name} au panier`}
+          title={added ? 'Ajouté au panier' : 'Ajouter au panier'}
         >
           {added ? (
             <Check size={16} strokeWidth={2} />
@@ -66,7 +74,7 @@ export default function ProductCard({ product }) {
           )}
           {added ? 'Ajouté' : 'Ajouter'}
         </button>
-      </Link>
+      </div>
 
       <div className="product-card__body">
         {product.category_name && (
@@ -76,8 +84,8 @@ export default function ProductCard({ product }) {
           <Link to={`/produits/${product.id}`}>{product.name}</Link>
         </h3>
         <div className="product-card__price-row">
-          <span className="product-card__price">{formatPrice(product.base_price || product.price)}</span>
-          {product.compare_price && product.compare_price > (product.base_price || product.price) && (
+          <span className="product-card__price">{formatPrice(currentPrice)}</span>
+          {product.compare_price && product.compare_price > currentPrice && (
             <span className="product-card__compare">{formatPrice(product.compare_price)}</span>
           )}
         </div>
