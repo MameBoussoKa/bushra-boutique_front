@@ -39,8 +39,10 @@ export const api = {
 
   // Orders
   createOrder: (data) => request('/orders', { method: 'POST', body: JSON.stringify(data) }),
-  trackOrder: (orderNumber, phone) =>
-    request(`/orders/track?orderNumber=${orderNumber}&phone=${encodeURIComponent(phone)}`),
+  trackOrder: (orderNumber, phone) => {
+    const params = new URLSearchParams({ orderNumber, phone });
+    return request(`/orders/track?${params.toString()}`);
+  },
 
   // Reviews
   createReview: (data) => request('/reviews', { method: 'POST', body: JSON.stringify(data) }),
@@ -96,9 +98,11 @@ export const api = {
 };
 
 export function getImageUrl(path) {
-  if (!path) return '/placeholder.jpg';
-  if (path.startsWith('http')) return path;
+  if (!path) return '/encensoir1.png';
+  if (/^https?:\/\//i.test(path)) return path;
   if (path.startsWith('/uploads/')) return path;
+  if (path.startsWith('uploads/')) return `/${path}`;
+  if (path.startsWith('/')) return path;
   return `/uploads/${path}`;
 }
 

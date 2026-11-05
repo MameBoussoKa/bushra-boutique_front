@@ -1,75 +1,66 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { MessageCircle, Phone, MapPin, CreditCard, Smartphone } from 'lucide-react';
+import { MessageCircle, Phone, MapPin, CreditCard, Smartphone, ArrowRight } from 'lucide-react';
 import './Footer.css';
 import TransparentLogo from './TransparentLogo';
 
 export default function Footer() {
   return (
     <footer className="footer">
+      <section className="footer-newsletter" aria-labelledby="footer-newsletter-title">
+        <p className="footer-newsletter__eyebrow">La maison Bushra</p>
+        <h2 id="footer-newsletter-title">Une nouvelle senteur<br />vous attend peut-être.</h2>
+        <p>Explorez les dernières pièces et collections de la boutique.</p>
+        <Link to="/produits">Découvrir les nouveautés <ArrowRight size={15} /></Link>
+      </section>
+
       <div className="footer__top">
         <div className="container footer__grid">
-          {/* Brand */}
           <div className="footer__brand">
-            <div className="footer__logo">
+            <Link to="/" className="footer__logo" aria-label="Bushra Machallah, accueil">
               <TransparentLogo src="/logo.png" alt="Bushra Machallah" className="footer__logo-img" width={120} height={120} tolerance={60} />
-            </div>
-            <p className="footer__desc">
-              Des senteurs authentiques et des encensoirs artisanaux, façonnés avec passion 
-              au cœur du Sénégal. Chaque produit est une invitation au voyage intérieur.
-            </p>
-            <div className="footer__socials">
-              <a href="#" aria-label="WhatsApp" className="footer__social">
-                <MessageCircle size={18} />
-              </a>
-              <a href="#" aria-label="Instagram" className="footer__social">
-                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="20" x="2" y="2" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" x2="17.51" y1="6.5" y2="6.5"/></svg>
-              </a>
-              <a href="#" aria-label="Facebook" className="footer__social">
-                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg>
-              </a>
-            </div>
+            </Link>
+            <p className="footer__desc">Encens, thiouraye, parfums et objets de senteur inspirés des gestes et des traditions du Sénégal.</p>
+            <a href="https://wa.me/221771234567" target="_blank" rel="noreferrer" aria-label="Contacter Bushra Machallah sur WhatsApp" className="footer__social"><MessageCircle size={18} /><span>WhatsApp</span></a>
           </div>
 
-          {/* Nav links */}
           <div className="footer__col">
-            <h4 className="footer__col-title">Boutique</h4>
+            <h3 className="footer__col-title">Service client</h3>
             <ul className="footer__links">
-              <li><Link to="/produits">Tous les produits</Link></li>
+              <li><Link to="/commande/suivi">Suivre ma commande</Link></li>
+              <li><Link to="/contact">Nous contacter</Link></li>
+              <li><Link to="/commande">Passer commande</Link></li>
+              <li><Link to="/compte">Mon espace</Link></li>
+            </ul>
+          </div>
+
+          <div className="footer__col">
+            <h3 className="footer__col-title">La maison</h3>
+            <ul className="footer__links">
+              <li><Link to="/">Accueil</Link></li>
+              <li><Link to="/a-propos">Notre histoire</Link></li>
               <li><Link to="/collections">Collections</Link></li>
-              <li><Link to="/produits?category=encens">Encens</Link></li>
-              <li><Link to="/produits?category=encensoirs">Encensoirs</Link></li>
-              <li><Link to="/produits?category=huiles">Huiles & Parfums</Link></li>
-            </ul>
-          </div>
-
-          <div className="footer__col">
-            <h4 className="footer__col-title">Aide</h4>
-            <ul className="footer__links">
-              <li><Link to="/commande/suivi">Suivre une commande</Link></li>
               <li><Link to="/contact">Contact</Link></li>
-              <li><Link to="/a-propos">À propos</Link></li>
-              <li><Link to="/livraison">Livraison</Link></li>
-              <li><Link to="/retours">Retours</Link></li>
             </ul>
           </div>
 
-          {/* Contact */}
           <div className="footer__col">
-            <h4 className="footer__col-title">Contactez-nous</h4>
+            <h3 className="footer__col-title">Nos univers</h3>
+            <ul className="footer__links">
+              <li><Link to="/produits?search=thiouraye">Thiouraye & encens</Link></li>
+              <li><Link to="/produits?search=encensoir">Mabkhara</Link></li>
+              <li><Link to="/produits?search=parfum">Parfums & brumes</Link></li>
+              <li><Link to="/produits?search=vétiver">Vétiver</Link></li>
+            </ul>
+          </div>
+
+          <div className="footer__col footer__contact-col">
+            <h3 className="footer__col-title">Retrouvez-nous</h3>
             <ul className="footer__contact">
-              <li>
-                <Phone size={16} strokeWidth={1.5} />
-                +221 77 123 45 67
-              </li>
-              <li>
-                <Phone size={16} strokeWidth={1.5} />
-                +221 78 987 65 43
-              </li>
-              <li>
-                <MapPin size={16} strokeWidth={1.5} />
-                Dakar, Sénégal
-              </li>
+              <li><Phone size={15} /><a href="tel:+221771234567">+221 77 123 45 67</a></li>
+              <li><MapPin size={15} /><span>Dakar, Sénégal</span></li>
+              <li><CreditCard size={15} /><span>Paiement à la livraison</span></li>
+              <li><Smartphone size={15} /><span>Wave · Orange Money</span></li>
             </ul>
           </div>
         </div>
@@ -77,13 +68,8 @@ export default function Footer() {
 
       <div className="footer__bottom">
         <div className="container footer__bottom-inner">
-          <p>© 2024 Bushra Machallah. Tous droits réservés.</p>
-          <div className="footer__payment">
-            <span className="label">Paiement à la livraison</span>
-            <CreditCard size={18} className="footer__payment-icon" />
-            <Smartphone size={18} className="footer__payment-icon" />
-            <span>Wave · Orange Money</span>
-          </div>
+          <p>© {new Date().getFullYear()} Bushra Machallah · Tous droits réservés</p>
+          <Link to="/commande/suivi">Suivre ma commande <ArrowRight size={13} /></Link>
         </div>
       </div>
     </footer>

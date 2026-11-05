@@ -1,25 +1,24 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
-import { Search, ShoppingCart, X, Home, LayoutGrid, User } from 'lucide-react';
+import { Search, ShoppingBag, X, Menu, UserRound, ChevronDown, ArrowRight, ChevronLeft, ChevronRight } from 'lucide-react';
 import './Navbar.css';
-import TransparentLogo from './TransparentLogo';
+
+const announcements = [
+  'Livraison offerte dès 25 000 FCFA',
+  'Paiement à la livraison · Wave · Orange Money',
+  'Une question ? Écrivez-nous sur WhatsApp',
+];
 
 export default function Navbar() {
-  const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [announcementIndex, setAnnouncementIndex] = useState(0);
   const { count } = useCart();
   const location = useLocation();
   const navigate = useNavigate();
   const searchRef = useRef(null);
-
-  useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 60);
-    window.addEventListener('scroll', onScroll, { passive: true });
-    return () => window.removeEventListener('scroll', onScroll);
-  }, []);
 
   useEffect(() => {
     setMenuOpen(false);
@@ -30,16 +29,23 @@ export default function Navbar() {
     if (searchOpen) searchRef.current?.focus();
   }, [searchOpen]);
 
-  const isHome = location.pathname === '/';
-  const isTransparent = isHome && !scrolled && !menuOpen;
+  useEffect(() => {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return undefined;
+    const timer = window.setInterval(() => setAnnouncementIndex(index => (index + 1) % announcements.length), 7000);
+    return () => window.clearInterval(timer);
+  }, []);
 
-  function handleSearch(e) {
-    e.preventDefault();
-    if (searchQuery.trim()) {
-      navigate(`/produits?search=${encodeURIComponent(searchQuery.trim())}`);
-      setSearchOpen(false);
-      setSearchQuery('');
-    }
+  function handleSearch(event) {
+    event.preventDefault();
+    const query = searchQuery.trim();
+    if (!query) return;
+    navigate(`/produits?search=${encodeURIComponent(query)}`);
+    setSearchQuery('');
+    setSearchOpen(false);
+  }
+
+  function changeAnnouncement(direction) {
+    setAnnouncementIndex(index => (index + direction + announcements.length) % announcements.length);
   }
 
   const navLinks = [
@@ -49,145 +55,74 @@ export default function Navbar() {
     { to: '/contact', label: 'Contact' },
   ];
 
-  const bottomNavLinks = [
-    { to: '/', label: 'Accueil', icon: 'home' },
-    { to: '/collections', label: 'Collections', icon: 'grid' },
-    { to: '/panier', label: 'Panier', icon: 'cart' },
-    { to: '/compte', label: 'Compte', icon: 'user' },
-  ];
-
   return (
-    <>
-      <nav className={`navbar ${isTransparent ? 'navbar--transparent' : 'navbar--solid'} ${menuOpen ? 'navbar--open' : ''}`}>
-        <div className="navbar__inner">
-          {/* Logo */}
-          <Link to="/" className="navbar__logo" aria-label="Bushra Machallah — Accueil">
-            <TransparentLogo
-              src="/logo.png"
-              alt="Bushra Machallah"
-              className="navbar__logo-img"
-              tolerance={50}
-              width={80}
-              height={80}
-            />
-          </Link>
+    <header className="store-header">
+      <div className="announcement-bar">
+        <button type="button" onClick={() => changeAnnouncement(-1)} aria-label="Annonce précédente"><ChevronLeft size={14} /></button>
+        <p aria-live="polite" aria-atomic="true" key={announcementIndex}>{announcements[announcementIndex]}</p>
+        <button type="button" onClick={() => changeAnnouncement(1)} aria-label="Annonce suivante"><ChevronRight size={14} /></button>
+      </div>
 
-          {/* Nav links - desktop */}
+      <nav className="navbar" aria-label="Navigation principale">
+        <div className="navbar__inner">
+          <button type="button" className={`navbar__hamburger ${menuOpen ? 'is-open' : ''}`} onClick={() => setMenuOpen(open => !open)} aria-label={menuOpen ? 'Fermer le menu' : 'Ouvrir le menu'} aria-expanded={menuOpen} aria-controls="mobile-menu">
+            {menuOpen ? <X size={22} /> : <Menu size={22} />}
+          </button>
+
           <ul className="navbar__links">
-            {navLinks.map(link => (
-              <li key={link.to}>
-                <Link
-                  to={link.to}
-                  className={`navbar__link ${location.pathname === link.to ? 'navbar__link--active' : ''}`}
-                >
-                  {link.label}
-                </Link>
-              </li>
-            ))}
+            <li><Link to="/" className={location.pathname === '/' ? 'is-active' : ''}>Accueil</Link></li>
+            <li className="navbar__collections">
+              <Link to="/collections" className={location.pathname.startsWith('/collections') ? 'is-active' : ''}>Collections <ChevronDown size={13} /></Link>
+              <div className="navbar__dropdown">
+                <Link to="/produits?search=thiouraye">Thiouraye & encens</Link>
+                <Link to="/produits?search=encensoir">Mabkhara</Link>
+                <Link to="/produits?search=parfum">Parfums & brumes</Link>
+                <Link to="/produits">Toute la boutique <ArrowRight size={13} /></Link>
+              </div>
+            </li>
+            <li><Link to="/a-propos" className={location.pathname === '/a-propos' ? 'is-active' : ''}>À propos</Link></li>
+            <li><Link to="/contact" className={location.pathname === '/contact' ? 'is-active' : ''}>Contact</Link></li>
           </ul>
 
-          {/* Actions */}
+          <Link to="/" className="navbar__logo" aria-label="Bushra Machallah — accueil">
+            <span className="navbar__wordmark">Bushra<span>Machallah</span></span>
+          </Link>
+
           <div className="navbar__actions">
-            <button
-              className="navbar__action-btn navbar__search-btn"
-              onClick={() => setSearchOpen(s => !s)}
-              aria-label="Rechercher"
-            >
-              <Search size={20} strokeWidth={1.5} />
+            <button type="button" className="navbar__icon-btn" onClick={() => setSearchOpen(open => !open)} aria-label={searchOpen ? 'Fermer la recherche' : 'Ouvrir la recherche'} aria-expanded={searchOpen}>
+              {searchOpen ? <X size={19} /> : <Search size={19} />}
             </button>
-
-            <Link to="/panier" className="navbar__action-btn navbar__cart-btn" aria-label={`Panier (${count} articles)`}>
-              <ShoppingCart size={20} strokeWidth={1.5} />
-              {count > 0 && <span className="navbar__cart-count">{count}</span>}
+            <Link to="/compte" className="navbar__icon-btn navbar__account-btn" aria-label="Mon compte"><UserRound size={19} /></Link>
+            <Link to="/panier" className="navbar__cart" aria-label={`Panier, ${count} article${count > 1 ? 's' : ''}`}>
+              <ShoppingBag size={17} /><span>Panier</span>{count > 0 && <span className="navbar__cart-count">{count}</span>}
             </Link>
-
-            <Link to="/commande/suivi" className="navbar__cta">
-              Suivre ma commande
-            </Link>
-
-            {/* Mobile hamburger - caché sur mobile avec bottom nav */}
-            <button
-              className={`navbar__hamburger ${menuOpen ? 'navbar__hamburger--open' : ''}`}
-              onClick={() => setMenuOpen(s => !s)}
-              aria-label="Menu"
-              aria-expanded={menuOpen}
-            >
-              <span /><span /><span />
-            </button>
           </div>
         </div>
 
-        {/* Search bar */}
-        <div className={`navbar__search ${searchOpen ? 'navbar__search--open' : ''}`}>
+        <div className={`navbar__search-panel ${searchOpen ? 'is-open' : ''}`} aria-hidden={!searchOpen}>
           <form onSubmit={handleSearch} className="navbar__search-form">
-            <input
-              ref={searchRef}
-              type="text"
-              placeholder="Rechercher encens, senteurs, encensoirs…"
-              value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
-              className="navbar__search-input"
-            />
-            <button type="submit" className="navbar__search-submit">
-              Rechercher
-            </button>
-            <button type="button" onClick={() => setSearchOpen(false)} className="navbar__search-close">
-              <X size={18} strokeWidth={2} />
-            </button>
+            <Search size={18} aria-hidden="true" />
+            <label className="sr-only" htmlFor="store-search">Rechercher dans la boutique</label>
+            <input id="store-search" ref={searchRef} tabIndex={searchOpen ? 0 : -1} value={searchQuery} onChange={event => setSearchQuery(event.target.value)} placeholder="Rechercher une senteur, un encensoir…" />
+            <button type="submit" tabIndex={searchOpen ? 0 : -1} disabled={!searchQuery.trim()}>Rechercher</button>
           </form>
         </div>
       </nav>
 
-      {/* Mobile menu */}
-      <div className={`mobile-menu ${menuOpen ? 'mobile-menu--open' : ''}`}>
-        <ul className="mobile-menu__links">
-          {navLinks.map((link, i) => (
-            <li key={link.to} style={{ animationDelay: `${i * 60}ms` }}>
-              <Link
-                to={link.to}
-                className={`mobile-menu__link ${location.pathname === link.to ? 'mobile-menu__link--active' : ''}`}
-              >
-                {link.label}
-              </Link>
-            </li>
-          ))}
-          <li>
-            <Link to="/panier" className="mobile-menu__link">
-              Panier {count > 0 && <span className="mobile-menu__badge">{count}</span>}
-            </Link>
-          </li>
-        </ul>
-        <div className="mobile-menu__footer">
-          <Link to="/commande/suivi" className="btn btn--primary btn--full">
-            Suivre ma commande
-          </Link>
-        </div>
+      <div className={`mobile-menu ${menuOpen ? 'mobile-menu--open' : ''}`} id="mobile-menu" aria-hidden={!menuOpen}>
+        <nav aria-label="Navigation mobile">
+          {navLinks.map((link, index) => <Link tabIndex={menuOpen ? 0 : -1} style={{ '--menu-index': index }} to={link.to} key={link.to} onClick={() => setMenuOpen(false)}>{link.label}<ArrowRight size={18} /></Link>)}
+          {[
+            { label: 'Thiouraye & encens', to: '/produits?search=thiouraye' },
+            { label: 'Mabkhara', to: '/produits?search=encensoir' },
+            { label: 'Parfums & brumes', to: '/produits?search=parfum' },
+          ].map((link, index) => <Link tabIndex={menuOpen ? 0 : -1} style={{ '--menu-index': index + navLinks.length }} to={link.to} key={link.to} onClick={() => setMenuOpen(false)}>{link.label}<ArrowRight size={18} /></Link>)}
+          <Link tabIndex={menuOpen ? 0 : -1} to="/compte" onClick={() => setMenuOpen(false)}>Mon compte<ArrowRight size={18} /></Link>
+          <Link tabIndex={menuOpen ? 0 : -1} to="/commande/suivi" onClick={() => setMenuOpen(false)}>Suivre ma commande<ArrowRight size={18} /></Link>
+        </nav>
+        <a tabIndex={menuOpen ? 0 : -1} className="mobile-menu__whatsapp" href="https://wa.me/221771234567" target="_blank" rel="noreferrer">Une question ? WhatsApp</a>
       </div>
-
-      {/* Overlay */}
-      {menuOpen && <div className="navbar__overlay" onClick={() => setMenuOpen(false)} />}
-
-      {/* Bottom Navigation Mobile */}
-      <nav className="bottom-nav">
-        {bottomNavLinks.map(link => (
-          <Link
-            key={link.to}
-            to={link.to}
-            className={`bottom-nav__link ${location.pathname === link.to ? 'bottom-nav__link--active' : ''}`}
-          >
-            <span className="bottom-nav__icon">
-              {link.icon === 'home' && <Home size={24} strokeWidth={1.5} />}
-              {link.icon === 'grid' && <LayoutGrid size={24} strokeWidth={1.5} />}
-              {link.icon === 'cart' && <ShoppingCart size={24} strokeWidth={1.5} />}
-              {link.icon === 'user' && <User size={24} strokeWidth={1.5} />}
-            </span>
-            <span className="bottom-nav__label">{link.label}</span>
-            {link.icon === 'cart' && count > 0 && (
-              <span className="bottom-nav__badge">{count}</span>
-            )}
-          </Link>
-        ))}
-      </nav>
-    </>
+      {menuOpen && <button type="button" className="navbar__overlay" onClick={() => setMenuOpen(false)} aria-label="Fermer le menu" />}
+    </header>
   );
 }

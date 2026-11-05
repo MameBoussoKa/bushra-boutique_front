@@ -1,20 +1,26 @@
 /* =====================================================
    BUSHRA MACHALLAH — Design System
-   Palette: Nuit d'encens — ambre profond, or pâle, fumée
+   Palette: papier blanc, encre noire, laiton discret
    ===================================================== */
 
 :root {
-  /* Couleurs principales */
-  --color-obsidian: #0D0A08;       /* fond le plus sombre */
-  --color-charcoal: #1A1410;       /* fond sections sombres */
-  --color-ember: #2C1D0E;          /* fond cartes sombres */
-  --color-oud: #4A2C0A;            /* accent brun-oud */
-  --color-amber: #C17B2F;          /* doré-ambré principal */
-  --color-gold: #E8B86D;           /* or lumineux */
-  --color-cream: #F5EDD8;          /* crème chaud */
-  --color-smoke: #8C7B6B;          /* gris fumée */
-  --color-ash: #B5A090;            /* cendres claires */
-  --color-white: #FAF6F0;          /* blanc chaud */
+  --color-paper: #ffffff;
+  --color-surface: #f5f4f1;
+  --color-surface-soft: #eeece8;
+  --color-ink: #171513;
+  --color-muted: #716b65;
+  --color-rust: #8c562d;
+  --color-night: #111111;
+  --color-obsidian: #171513;
+  --color-charcoal: #111111;
+  --color-ember: #f5f4f1;
+  --color-oud: #58351e;
+  --color-amber: #8c562d;
+  --color-gold: #d3a264;
+  --color-cream: #211d19;
+  --color-smoke: #716b65;
+  --color-ash: #5e5751;
+  --color-white: #ffffff;
 
   /* Typography */
   --font-display: 'Cormorant Garamond', Georgia, serif;
@@ -51,8 +57,8 @@ html {
 
 body {
   font-family: var(--font-body);
-  background-color: var(--color-obsidian);
-  color: var(--color-cream);
+  background-color: var(--color-paper);
+  color: var(--color-ink);
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
   overflow-x: hidden;
@@ -297,5 +303,46 @@ ul, ol {
   }
   .not-found__desc {
     font-size: 0.95rem;
+  }
+}
+
+/* Shared controls */
+.btn {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
+  gap: .55rem;
+  padding: .75rem 1.25rem;
+  border: 1px solid transparent;
+  font: 600 .72rem/1.25 var(--font-body);
+  letter-spacing: .09em;
+  text-align: center;
+  text-decoration: none;
+  text-transform: uppercase;
+  transition: color .2s, background .2s, border-color .2s, transform .2s;
+}
+.btn:hover { transform: translateY(-1px); }
+.btn:disabled { opacity: .55; cursor: not-allowed; transform: none; }
+.btn--full { width: 100%; }
+.btn--ghost { color: var(--color-ink); border-bottom-color: var(--color-ink); background: transparent; }
+.btn--ghost:hover { color: var(--color-rust); border-color: var(--color-rust); }
+
+body { background: var(--color-paper); color: var(--color-ink); }
+::-webkit-scrollbar-track { background: var(--color-paper); }
+.btn--primary { color:#fff; background:#171513; }
+.btn--primary:hover { color:#fff; background:#8c562d; box-shadow:0 8px 20px rgba(23,21,19,.18); }
+.btn--outline { color:#171513; border:1px solid rgba(23,21,19,.45); }
+.btn--outline:hover { color:#fff; background:#171513; border-color:#171513; }
+:focus-visible { outline:2px solid #8c562d; outline-offset:3px; }
+
+::selection { background: rgba(211,162,100,.28); color:var(--color-ink); }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    scroll-behavior: auto !important;
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
   }
 }

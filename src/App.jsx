@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Link } from 'react-router-dom';
 import { CartProvider } from './context/CartContext';
 import { AuthProvider } from './context/AuthContext';
 import Navbar from './components/Navbar';
@@ -80,7 +80,7 @@ function NotFound() {
       <div className="not-found__icon"><Flame size={64} strokeWidth={1.5} color="var(--color-amber)" /></div>
       <h1 className="not-found__title">404</h1>
       <p className="not-found__desc">Cette page n'existe pas ou a été déplacée.</p>
-      <a href="/" className="btn btn--primary">Retour à l'accueil</a>
+      <Link to="/" className="btn btn--primary">Retour à l'accueil</Link>
     </div>
   );
 }
