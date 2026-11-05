@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation, Routes, Route, NavLink } from 'react-router-dom';
 import { api, formatPrice, getImageUrl } from '../utils/api';
-import { LayoutDashboard, Package, ShoppingCart, Star, Tag, Globe, LogOut, Plus, ArrowLeft } from 'lucide-react';
+import { LayoutDashboard, Package, ShoppingCart, Star, Tag, Globe, LogOut, Plus, ArrowLeft, Layers, Eye, EyeOff, Check, Edit, Trash2 } from 'lucide-react';
 import './AdminPage.css';
 import TransparentLogo from '../components/TransparentLogo';
 import { useAuth } from '../context/AuthContext';
@@ -198,7 +198,15 @@ function AdminProducts() {
   const [editing, setEditing] = useState(null);
   const [categories, setCategories] = useState([]);
 
-  const emptyForm = { name: '', description: '', price: '', compare_price: '', stock: '', category_id: '', is_featured: false };
+  const [showVariants, setShowVariants] = useState(false);
+  const [variantProduct, setVariantProduct] = useState(null);
+  const [variants, setVariants] = useState([]);
+  const [variantForm, setVariantForm] = useState({ name: '', type: 'model', colorHex: '', priceDelta: 0, sku: '', stock: 0, lowStockThreshold: 5 });
+  const [editingVariant, setEditingVariant] = useState(null);
+  const [variantSubmitting, setVariantSubmitting] = useState(false);
+  const [imagePreview, setImagePreview] = useState(null);
+
+  const emptyForm = { name: '', description: '', price: '', compare_price: '', stock: '', category_id: '', is_featured: false, image: null };
   const [form, setForm] = useState(emptyForm);
 
   useEffect(() => {
@@ -217,24 +225,105 @@ function AdminProducts() {
       name: product.name, description: product.description || '',
       price: product.price, compare_price: product.compare_price || '',
       stock: product.stock || '', category_id: product.category_id || '',
-      is_featured: product.is_featured || false,
+      is_featured: product.is_featured || false, image: null,
     } : emptyForm);
+    setImagePreview(product?.images?.[0]?.url || product?.primary_image || null);
     setShowForm(true);
   }
 
   async function handleSave(e) {
     e.preventDefault();
     const data = { ...form, price: Number(form.price), compare_price: form.compare_price ? Number(form.compare_price) : null, stock: Number(form.stock) };
-    if (editing) await api.admin.updateProduct(editing.id, data);
-    else await api.admin.createProduct(data);
-    setShowForm(false);
-    fetchProducts();
+    try {
+      if (editing) await api.admin.updateProduct(editing.id, data, form.image);
+      else await api.admin.createProduct(data, form.image);
+      setShowForm(false);
+      setForm(emptyForm);
+      setImagePreview(null);
+      fetchProducts();
+    } catch (err) {
+      alert(err.message || 'Erreur lors de l\'enregistrement du produit');
+    }
   }
 
   async function handleDelete(id) {
     if (!confirm('Supprimer ce produit ?')) return;
     await api.admin.deleteProduct(id);
     fetchProducts();
+  }
+
+  async function handleForceDelete(id) {
+    if (!confirm('Supprimer ce produit DÉFINITIVEMENT ? Cette action est irréversible.')) return;
+    await api.admin.forceDeleteProduct(id);
+    fetchProducts();
+  }
+
+  function openVariants(product) {
+    setVariantProduct(product);
+    setEditingVariant(null);
+    setVariantForm({ name: '', type: 'model', colorHex: '', priceDelta: 0, sku: '', stock: 0, lowStockThreshold: 5 });
+    setShowVariants(true);
+    api.admin.getProductVariants(product.id).then(r => setVariants(r.data || [])).catch(console.error);
+  }
+
+  async function handleVariantSave(e) {
+    e.preventDefault();
+    setVariantSubmitting(true);
+    try {
+      const data = {
+        name: variantForm.name,
+        type: variantForm.type,
+        colorHex: variantForm.colorHex || null,
+        priceDelta: Number(variantForm.priceDelta),
+        sku: variantForm.sku || null,
+        stock: Number(variantForm.stock),
+        lowStockThreshold: Number(variantForm.lowStockThreshold),
+      };
+      if (editingVariant) {
+        await api.admin.updateVariant(editingVariant.id, data);
+      } else {
+        await api.admin.createVariant(variantProduct.id, data);
+      }
+      setEditingVariant(null);
+      setVariantForm({ name: '', type: 'model', colorHex: '', priceDelta: 0, sku: '', stock: 0, lowStockThreshold: 5 });
+      api.admin.getProductVariants(variantProduct.id).then(r => setVariants(r.data || [])).catch(console.error);
+    } catch (err) {
+      alert(err.message || 'Erreur lors de l\'enregistrement de la variante');
+    } finally {
+      setVariantSubmitting(false);
+    }
+  }
+
+  async function handleVariantDelete(variant) {
+    if (!confirm(`Supprimer la variante "${variant.name}" ?`)) return;
+    try {
+      await api.admin.deleteVariant(variant.id);
+      setVariants(v => v.filter(x => x.id !== variant.id));
+    } catch (err) {
+      alert(err.message || 'Erreur lors de la suppression');
+    }
+  }
+
+  async function handleVariantToggle(variant) {
+    try {
+      const updated = await api.admin.toggleVariant(variant.id, !variant.is_active);
+      setVariants(v => v.map(x => x.id === variant.id ? updated.data : x));
+    } catch (err) {
+      alert(err.message || 'Erreur');
+    }
+  }
+
+  function editVariant(variant) {
+    setEditingVariant(variant);
+    setVariantForm({
+      name: variant.name,
+      type: variant.type || 'model',
+      colorHex: variant.color_hex || '',
+      priceDelta: variant.price_delta || 0,
+      sku: variant.sku || '',
+      stock: variant.quantity || 0,
+      lowStockThreshold: variant.low_stock_threshold || 5,
+    });
   }
 
   return (
@@ -254,11 +343,11 @@ function AdminProducts() {
             <form onSubmit={handleSave} className="admin-form">
               <div className="form-field"><label>Nom *</label><input value={form.name} onChange={e => setForm(f => ({...f, name: e.target.value}))} required /></div>
               <div className="form-field"><label>Description</label><textarea value={form.description} onChange={e => setForm(f => ({...f, description: e.target.value}))} rows={3} /></div>
-              <div className="form-grid-2">
+              <div className="admin-grid-2">
                 <div className="form-field"><label>Prix (FCFA) *</label><input type="number" value={form.price} onChange={e => setForm(f => ({...f, price: e.target.value}))} required /></div>
                 <div className="form-field"><label>Prix barré</label><input type="number" value={form.compare_price} onChange={e => setForm(f => ({...f, compare_price: e.target.value}))} /></div>
               </div>
-              <div className="form-grid-2">
+              <div className="admin-grid-2">
                 <div className="form-field"><label>Stock</label><input type="number" value={form.stock} onChange={e => setForm(f => ({...f, stock: e.target.value}))} /></div>
                 <div className="form-field"><label>Catégorie</label>
                   <select value={form.category_id} onChange={e => setForm(f => ({...f, category_id: e.target.value}))}>
@@ -268,11 +357,95 @@ function AdminProducts() {
                 </div>
               </div>
               <label className="admin-checkbox"><input type="checkbox" checked={form.is_featured} onChange={e => setForm(f => ({...f, is_featured: e.target.checked}))} /> Produit mis en avant</label>
+              <div className="form-field">
+                <label>Image du produit</label>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={e => {
+                    const file = e.target.files?.[0] || null;
+                    setForm(f => ({ ...f, image: file }));
+                    setImagePreview(file ? URL.createObjectURL(file) : null);
+                  }}
+                />
+                {imagePreview && (
+                  <div className="admin-product-thumb" style={{ marginTop: '0.5rem' }}>
+                    <img src={getImageUrl(imagePreview)} alt="Aperçu" />
+                  </div>
+                )}
+              </div>
               <div className="admin-form__actions">
                 <button type="button" className="btn btn--outline" onClick={() => setShowForm(false)}>Annuler</button>
                 <button type="submit" className="btn btn--primary">Enregistrer</button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {showVariants && (
+        <div className="admin-modal-overlay">
+          <div className="admin-modal admin-modal--wide">
+            <div className="admin-modal__header">
+              <h3 className="heading">Variantes — {variantProduct?.name}</h3>
+              <button onClick={() => { setShowVariants(false); setEditingVariant(null); }} className="admin-modal__close">×</button>
+            </div>
+            <form onSubmit={handleVariantSave} className="admin-form">
+              <div className="admin-form__section">
+                <div className="admin-form__section-title">{editingVariant ? 'Modifier la variante' : 'Nouvelle variante'}</div>
+                <div className="admin-grid-2">
+                  <div className="form-field"><label>Nom *</label><input value={variantForm.name} onChange={e => setVariantForm(f => ({...f, name: e.target.value}))} required /></div>
+                  <div className="form-field"><label>Type</label>
+                    <select value={variantForm.type} onChange={e => setVariantForm(f => ({...f, type: e.target.value}))}>
+                      <option value="model">Modèle</option>
+                      <option value="color">Couleur</option>
+                    </select>
+                  </div>
+                </div>
+                <div className="admin-grid-2">
+                  <div className="form-field"><label>Couleur (hex)</label><input value={variantForm.colorHex} onChange={e => setVariantForm(f => ({...f, colorHex: e.target.value}))} placeholder="#000000" /></div>
+                  <div className="form-field"><label>SKU</label><input value={variantForm.sku} onChange={e => setVariantForm(f => ({...f, sku: e.target.value}))} /></div>
+                </div>
+                <div className="admin-grid-3">
+                  <div className="form-field"><label>Delta prix (FCFA)</label><input type="number" value={variantForm.priceDelta} onChange={e => setVariantForm(f => ({...f, priceDelta: e.target.value}))} /></div>
+                  <div className="form-field"><label>Stock</label><input type="number" value={variantForm.stock} onChange={e => setVariantForm(f => ({...f, stock: e.target.value}))} /></div>
+                  <div className="form-field"><label>Seuil alerte stock</label><input type="number" value={variantForm.lowStockThreshold} onChange={e => setVariantForm(f => ({...f, lowStockThreshold: e.target.value}))} /></div>
+                </div>
+                <div className="admin-form__actions">
+                  <button type="button" className="btn btn--outline" onClick={() => { setEditingVariant(null); setVariantForm({ name: '', type: 'model', colorHex: '', priceDelta: 0, sku: '', stock: 0, lowStockThreshold: 5 }); }}>Annuler</button>
+                  <button type="submit" className="btn btn--primary" disabled={variantSubmitting}>{editingVariant ? 'Mettre à jour' : 'Créer'}</button>
+                </div>
+              </div>
+            </form>
+
+            <div className="admin-table-wrap" style={{ marginTop: '1rem' }}>
+              <table className="admin-table">
+                <thead><tr><th>Nom</th><th>Type</th><th>Couleur</th><th>Delta</th><th>Stock</th><th>SKU</th><th>Statut</th><th>Actions</th></tr></thead>
+                <tbody>
+                  {variants.map(v => (
+                    <tr key={v.id}>
+                      <td><strong>{v.name}</strong></td>
+                      <td>{v.type === 'color' ? 'Couleur' : 'Modèle'}</td>
+                      <td>{v.color_hex ? <span style={{ display: 'inline-block', width: 16, height: 16, borderRadius: 4, background: v.color_hex, border: '1px solid #ddd' }} /> : '—'}</td>
+                      <td>{v.price_delta ? formatPrice(v.price_delta) : '—'}</td>
+                      <td><span className={`admin-stock ${v.quantity > 0 ? 'in' : 'out'}`}>{v.quantity || 0}</span></td>
+                      <td style={{ color: 'var(--color-smoke)' }}>{v.sku || '—'}</td>
+                      <td>{v.is_active ? <span style={{ color: '#4caf50' }}>Actif</span> : <span style={{ color: '#f44336' }}>Inactif</span>}</td>
+                      <td>
+                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                          <button className="admin-action-btn" onClick={() => editVariant(v)}><Edit size={16} strokeWidth={1.5} /></button>
+                          <button className="admin-action-btn" onClick={() => handleVariantToggle(v)}>{v.is_active ? <EyeOff size={16} strokeWidth={1.5} /> : <Eye size={16} strokeWidth={1.5} />}</button>
+                          <button className="admin-action-btn admin-action-btn--danger" onClick={() => handleVariantDelete(v)}><Trash2 size={16} strokeWidth={1.5} /></button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                  {variants.length === 0 && (
+                    <tr><td colSpan={8} style={{ textAlign: 'center', color: 'var(--color-smoke)' }}>Aucune variante</td></tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       )}
@@ -286,7 +459,7 @@ function AdminProducts() {
                 <td>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                     <div className="admin-product-thumb">
-                      {p.images?.[0]?.url ? <img src={getImageUrl(p.images[0].url)} alt={p.name} /> : <Package size={24} strokeWidth={1.5} />}
+                       {(p.images?.[0]?.url || p.primary_image) ? <img src={getImageUrl(p.images?.[0]?.url || p.primary_image)} alt={p.name} /> : <Package size={24} strokeWidth={1.5} />}
                     </div>
                     <strong>{p.name}</strong>
                   </div>
@@ -297,8 +470,10 @@ function AdminProducts() {
                 <td>{p.is_featured ? <Check size={16} strokeWidth={2} color="#4caf50" /> : '—'}</td>
                 <td>
                   <div style={{ display: 'flex', gap: '0.5rem' }}>
-                    <button className="admin-action-btn" onClick={() => openForm(p)}><Edit size={16} strokeWidth={1.5} /></button>
-                    <button className="admin-action-btn admin-action-btn--danger" onClick={() => handleDelete(p.id)}><Trash2 size={16} strokeWidth={1.5} /></button>
+                    <button className="admin-action-btn" onClick={() => openForm(p)} title="Modifier"><Edit size={16} strokeWidth={1.5} /></button>
+                    <button className="admin-action-btn" onClick={() => openVariants(p)} title="Gérer les variantes"><Layers size={16} strokeWidth={1.5} /></button>
+                    <button className="admin-action-btn admin-action-btn--danger" onClick={() => handleDelete(p.id)} title="Supprimer (désactiver)"><Trash2 size={16} strokeWidth={1.5} /></button>
+                    <button className="admin-action-btn admin-action-btn--danger" onClick={() => handleForceDelete(p.id)} title="Supprimer définitivement"><Trash2 size={16} strokeWidth={2.5} /></button>
                   </div>
                 </td>
               </tr>

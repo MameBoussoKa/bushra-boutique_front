@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { api, formatPrice, getImageUrl } from '../utils/api';
-import { Banknote, Smartphone, Circle, Flame, AlertCircle } from 'lucide-react';
+import { Banknote, Smartphone, Circle, Flame, AlertCircle, ChevronRight, ShieldCheck, Truck, Lock } from 'lucide-react';
 import './CheckoutPage.css';
 
 export default function CheckoutPage() {
@@ -12,13 +12,19 @@ export default function CheckoutPage() {
   const [error, setError] = useState('');
 
   const [form, setForm] = useState({
-    firstName: '', lastName: '', phone: '', email: '',
-    address: '', city: 'Dakar', region: '', notes: '',
+    firstName: '',
+    lastName: '',
+    phone: '',
+    email: '',
+    address: '',
+    city: 'Dakar',
+    region: '',
+    notes: '',
     paymentMethod: 'cash_on_delivery',
   });
 
   function update(field, value) {
-    setForm(f => ({ ...f, [field]: value }));
+    setForm((f) => ({ ...f, [field]: value }));
   }
 
   async function handleSubmit(e) {
@@ -34,7 +40,7 @@ export default function CheckoutPage() {
         customerAddress: form.address,
         customerCity: form.city,
         customerNote: form.notes,
-        items: items.map(i => ({
+        items: items.map((i) => ({
           productId: i.productId,
           variantId: i.variantId,
           quantity: i.quantity,
@@ -43,9 +49,11 @@ export default function CheckoutPage() {
 
       const res = await api.createOrder(orderData);
       dispatch({ type: 'CLEAR' });
-      navigate(`/commande/confirmation?order=${res.order?.orderNumber || res.data?.orderNumber || res.data?.id}`);
+      navigate(
+        `/commande/confirmation?order=${res.order?.orderNumber || res.data?.orderNumber || res.data?.id}`
+      );
     } catch (err) {
-      setError(err.message || 'Une erreur est survenue. Veuillez réessayer.');
+      setError(err.message || 'Une erreur est survenue lors de la commande. Veuillez réessayer.');
     } finally {
       setLoading(false);
     }
@@ -53,11 +61,15 @@ export default function CheckoutPage() {
 
   if (items.length === 0) {
     return (
-      <div className="checkout-empty">
-        <p>Votre panier est vide.</p>
-        <Link to="/produits" className="btn btn--primary" style={{ marginTop: '1rem' }}>
-          Explorer la boutique
-        </Link>
+      <div className="checkout-page checkout-page--empty">
+        <div className="container">
+          <div className="checkout-empty-card">
+            <p>Votre panier est vide.</p>
+            <Link to="/produits" className="btn btn--primary" style={{ marginTop: '1.25rem' }}>
+              Explorer la boutique
+            </Link>
+          </div>
+        </div>
       </div>
     );
   }
@@ -67,73 +79,164 @@ export default function CheckoutPage() {
 
   return (
     <div className="checkout-page">
+      {/* Breadcrumb */}
+      <div className="container product-breadcrumb" style={{ paddingTop: '100px' }}>
+        <Link to="/">Accueil</Link>
+        <ChevronRight size={14} />
+        <Link to="/panier">Panier</Link>
+        <ChevronRight size={14} />
+        <span className="product-breadcrumb__current">Finalisation de commande</span>
+      </div>
+
       <div className="container">
-        <div className="checkout-breadcrumb">
-          <Link to="/panier">← Retour au panier</Link>
+        <div className="checkout-header">
+          <span className="label" style={{ color: 'var(--color-gold)' }}>
+            <Lock size={13} /> Commande Sécurisée
+          </span>
+          <h1 className="display-md checkout-title">Informations de livraison</h1>
         </div>
-        <h1 className="display-md checkout-title">Finaliser la commande</h1>
 
         <form onSubmit={handleSubmit} className="checkout-layout">
-          {/* Form */}
-          <div className="checkout-form">
-            {/* Contact */}
-            <div className="checkout-section">
-              <h2 className="checkout-section__title heading">Informations personnelles</h2>
-              <div className="form-grid-2">
+          {/* Main Form Fields */}
+          <div className="checkout-form-column">
+            {/* Contact Details */}
+            <div className="checkout-card">
+              <h2 className="heading checkout-card__title">1. Coordonnées personnelles</h2>
+              <div className="checkout-grid-2">
                 <div className="form-field">
                   <label>Prénom *</label>
-                  <input type="text" value={form.firstName} onChange={e => update('firstName', e.target.value)} required />
+                  <input
+                    type="text"
+                    value={form.firstName}
+                    onChange={(e) => update('firstName', e.target.value)}
+                    placeholder="Ex: Fatou"
+                    required
+                  />
                 </div>
                 <div className="form-field">
                   <label>Nom *</label>
-                  <input type="text" value={form.lastName} onChange={e => update('lastName', e.target.value)} required />
+                  <input
+                    type="text"
+                    value={form.lastName}
+                    onChange={(e) => update('lastName', e.target.value)}
+                    placeholder="Ex: Diallo"
+                    required
+                  />
                 </div>
               </div>
-              <div className="form-grid-2">
+
+              <div className="checkout-grid-2">
                 <div className="form-field">
-                  <label>Téléphone *</label>
-                  <input type="tel" value={form.phone} onChange={e => update('phone', e.target.value)} required placeholder="+221 77 ..." />
+                  <label>Numéro de téléphone (WhatsApp si possible) *</label>
+                  <input
+                    type="tel"
+                    value={form.phone}
+                    onChange={(e) => update('phone', e.target.value)}
+                    placeholder="+221 77 123 45 67"
+                    required
+                  />
                 </div>
                 <div className="form-field">
-                  <label>Email (optionnel)</label>
-                  <input type="email" value={form.email} onChange={e => update('email', e.target.value)} placeholder="votre@email.com" />
+                  <label>Adresse email (optionnel)</label>
+                  <input
+                    type="email"
+                    value={form.email}
+                    onChange={(e) => update('email', e.target.value)}
+                    placeholder="votre@email.com"
+                  />
                 </div>
               </div>
             </div>
 
-            {/* Shipping */}
-            <div className="checkout-section">
-              <h2 className="checkout-section__title heading">Adresse de livraison</h2>
+            {/* Shipping Details */}
+            <div className="checkout-card">
+              <h2 className="heading checkout-card__title">2. Adresse de livraison</h2>
               <div className="form-field">
-                <label>Adresse complète *</label>
-                <input type="text" value={form.address} onChange={e => update('address', e.target.value)} required placeholder="Rue, quartier..." />
+                <label>Adresse précise ou repère *</label>
+                <input
+                  type="text"
+                  value={form.address}
+                  onChange={(e) => update('address', e.target.value)}
+                  placeholder="Quartier, rue, numéro de maison ou repère connu"
+                  required
+                />
               </div>
-              <div className="form-grid-2">
+
+              <div className="checkout-grid-2">
                 <div className="form-field">
                   <label>Ville *</label>
-                  <select value={form.city} onChange={e => update('city', e.target.value)}>
-                    {['Dakar', 'Thiès', 'Saint-Louis', 'Ziguinchor', 'Kaolack', 'Mbour', 'Diourbel', 'Touba'].map(c => (
-                      <option key={c} value={c}>{c}</option>
+                  <select
+                    value={form.city}
+                    onChange={(e) => update('city', e.target.value)}
+                    className="checkout-select"
+                  >
+                    {[
+                      'Dakar',
+                      'Thiès',
+                      'Saint-Louis',
+                      'Mbour',
+                      'Touba',
+                      'Ziguinchor',
+                      'Kaolack',
+                      'Diourbel',
+                      'Autre région',
+                    ].map((c) => (
+                      <option key={c} value={c}>
+                        {c}
+                      </option>
                     ))}
                   </select>
                 </div>
                 <div className="form-field">
-                  <label>Région</label>
-                  <input type="text" value={form.region} onChange={e => update('region', e.target.value)} placeholder="Région..." />
+                  <label>Complément / Quartier</label>
+                  <input
+                    type="text"
+                    value={form.region}
+                    onChange={(e) => update('region', e.target.value)}
+                    placeholder="Ex: Almadies, Mermoz, Maristes..."
+                  />
                 </div>
+              </div>
+
+              <div className="form-field">
+                <label>Instructions spécifiques pour le livreur (optionnel)</label>
+                <textarea
+                  value={form.notes}
+                  onChange={(e) => update('notes', e.target.value)}
+                  rows={2}
+                  placeholder="Horaires de livraison souhaités, code d'accès..."
+                />
               </div>
             </div>
 
-            {/* Payment */}
-            <div className="checkout-section">
-              <h2 className="checkout-section__title heading">Mode de paiement</h2>
+            {/* Payment Method Selection */}
+            <div className="checkout-card">
+              <h2 className="heading checkout-card__title">3. Mode de paiement</h2>
               <div className="payment-options">
                 {[
-                  { value: 'cash_on_delivery', label: 'Paiement à la livraison', icon: <Banknote size={20} strokeWidth={1.5} />, desc: 'Payez en espèces à la réception' },
-                  { value: 'wave', label: 'Wave', icon: <Smartphone size={20} strokeWidth={1.5} />, desc: 'Paiement mobile Wave' },
-                  { value: 'orange_money', label: 'Orange Money', icon: <Circle size={20} strokeWidth={1.5} />, desc: 'Paiement mobile Orange Money' },
-                ].map(opt => (
-                  <label key={opt.value} className={`payment-option ${form.paymentMethod === opt.value ? 'payment-option--active' : ''}`}>
+                  {
+                    value: 'cash_on_delivery',
+                    label: 'Paiement à la livraison',
+                    icon: <Banknote size={22} />,
+                    desc: 'Réglez directement en espèces auprès du livreur à la réception',
+                  },
+                  {
+                    value: 'wave',
+                    label: 'Paiement Wave',
+                    icon: <Smartphone size={22} style={{ color: '#1DC4FE' }} />,
+                    desc: 'Règlement instantané via votre application mobile Wave',
+                  },
+                  {
+                    value: 'orange_money',
+                    label: 'Orange Money',
+                    icon: <Circle size={22} style={{ color: '#FF7900' }} />,
+                    desc: 'Règlement sécurisé via Orange Money Sénégal',
+                  },
+                ].map((opt) => (
+                  <label
+                    key={opt.value}
+                    className={`payment-option ${form.paymentMethod === opt.value ? 'payment-option--active' : ''}`}
+                  >
                     <input
                       type="radio"
                       name="payment"
@@ -141,8 +244,8 @@ export default function CheckoutPage() {
                       checked={form.paymentMethod === opt.value}
                       onChange={() => update('paymentMethod', opt.value)}
                     />
-                    <span className="payment-option__icon">{opt.icon}</span>
-                    <div>
+                    <div className="payment-option__icon">{opt.icon}</div>
+                    <div className="payment-option__details">
                       <div className="payment-option__label">{opt.label}</div>
                       <div className="payment-option__desc">{opt.desc}</div>
                     </div>
@@ -151,61 +254,83 @@ export default function CheckoutPage() {
               </div>
             </div>
 
-            {/* Notes */}
-            <div className="checkout-section">
-              <div className="form-field">
-                <label>Notes / Instructions (optionnel)</label>
-                <textarea
-                  value={form.notes}
-                  onChange={e => update('notes', e.target.value)}
-                  rows={3}
-                  placeholder="Informations supplémentaires pour la livraison..."
-                />
+            {error && (
+              <div className="checkout-error">
+                <AlertCircle size={18} />
+                <span>{error}</span>
               </div>
-            </div>
+            )}
 
-              {error && (
-                <div className="checkout-error">
-                  <AlertCircle size={16} strokeWidth={2} />
-                  {error}
-                </div>
-              )}
-
-            <button type="submit" className="btn btn--primary btn--full checkout-submit" disabled={loading}>
-              {loading ? 'Traitement en cours…' : `Confirmer la commande — ${formatPrice(orderTotal)}`}
+            <button
+              type="submit"
+              className="btn btn--primary btn--full checkout-submit-btn"
+              disabled={loading}
+            >
+              {loading
+                ? 'Confirmation en cours…'
+                : `Confirmer ma commande — ${formatPrice(orderTotal)}`}
             </button>
           </div>
 
-          {/* Order summary */}
-          <div className="checkout-summary">
-            <h2 className="heading checkout-summary__title">Votre commande</h2>
-            <div className="checkout-items">
-              {items.map((item, i) => (
-                <div key={i} className="checkout-item">
-                  <div className="checkout-item__img">
-                    {item.image ? <img src={getImageUrl(item.image)} alt={item.name} /> : <Flame size={20} strokeWidth={1.5} />}
-                    <span className="checkout-item__qty">{item.quantity}</span>
-                  </div>
-                  <div className="checkout-item__info">
-                    <div className="checkout-item__name">{item.name}</div>
-                    {item.variantName && <div className="checkout-item__variant">{item.variantName}</div>}
-                  </div>
-                  <div className="checkout-item__price">{formatPrice(item.price * item.quantity)}</div>
+          {/* Sidebar Order Summary */}
+          <div className="checkout-summary-column">
+            <div className="checkout-summary-card">
+              <h2 className="heading checkout-summary-card__title">Votre commande ({items.length})</h2>
+              <div className="divider divider--left" style={{ margin: '0.75rem 0 1.25rem' }} />
+
+              <div className="checkout-items-list">
+                {items.map((item, i) => {
+                  const itemImg = item.image
+                    ? (item.image.startsWith('/') ? item.image : getImageUrl(item.image))
+                    : '/encensoir1.png';
+
+                  return (
+                    <div key={i} className="checkout-item">
+                      <div className="checkout-item__thumb">
+                        <img src={itemImg} alt={item.name} />
+                        <span className="checkout-item__badge">{item.quantity}</span>
+                      </div>
+                      <div className="checkout-item__info">
+                        <h4 className="checkout-item__name">{item.name}</h4>
+                        {item.variantName && (
+                          <span className="checkout-item__variant">{item.variantName}</span>
+                        )}
+                        <span className="checkout-item__price">
+                          {formatPrice(item.price * item.quantity)}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              <div className="checkout-totals">
+                <div className="checkout-total-line">
+                  <span>Sous-total</span>
+                  <span>{formatPrice(total)}</span>
                 </div>
-              ))}
-            </div>
-            <div className="checkout-totals">
-              <div className="checkout-total-line">
-                <span>Sous-total</span><span>{formatPrice(total)}</span>
+                <div className="checkout-total-line">
+                  <span>Frais de livraison</span>
+                  <span className={shipping === 0 ? 'checkout-free-text' : ''}>
+                    {shipping === 0 ? 'Gratuite' : formatPrice(shipping)}
+                  </span>
+                </div>
+                <div className="checkout-total-divider" />
+                <div className="checkout-total-line checkout-total-line--final">
+                  <span>Montant Total</span>
+                  <span className="checkout-final-amount">{formatPrice(orderTotal)}</span>
+                </div>
               </div>
-              <div className="checkout-total-line">
-                <span>Livraison</span>
-                <span style={{ color: shipping === 0 ? '#4caf50' : 'inherit' }}>
-                  {shipping === 0 ? 'Gratuite' : formatPrice(shipping)}
-                </span>
-              </div>
-              <div className="checkout-total-line checkout-total-line--final">
-                <span>Total</span><span>{formatPrice(orderTotal)}</span>
+
+              <div className="checkout-reassurance-box">
+                <div className="checkout-reassurance-row">
+                  <ShieldCheck size={16} className="gold-text" />
+                  <span>Données strictement protégées</span>
+                </div>
+                <div className="checkout-reassurance-row">
+                  <Truck size={16} className="gold-text" />
+                  <span>Confirmation par appel / WhatsApp</span>
+                </div>
               </div>
             </div>
           </div>
