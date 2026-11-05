@@ -278,3 +278,9 @@ a.contact-channel__val:hover { color: var(--page-clay); text-decoration: underli
 @media (prefers-reduced-motion: reduce) {
   .simple-page *, .simple-page *::before, .simple-page *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; }
 }
+
+.account-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 1rem;
+}
